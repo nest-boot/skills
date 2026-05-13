@@ -4,16 +4,22 @@ Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态下的
 
 ## 使用
 
-通过 `pnpm dlx skills@latest` 安装本仓库中的 skills：
+建议在项目根目录中以项目级别安装本仓库中的 skills，并使用 `--copy` 复制文件，而不是软链接：
 
 ```sh
-pnpm dlx skills@latest add https://github.com/nest-boot/skills --skill <skill-name>
+pnpm dlx skills@latest add https://github.com/nest-boot/skills --skill <skill-name> --copy
+```
+
+安装本仓库中的所有 skills：
+
+```sh
+pnpm dlx skills@latest add https://github.com/nest-boot/skills --all --copy
 ```
 
 例如，安装 `nest-boot-best-practices`：
 
 ```sh
-pnpm dlx skills@latest add https://github.com/nest-boot/skills --skill nest-boot-best-practices
+pnpm dlx skills@latest add https://github.com/nest-boot/skills --skill nest-boot-best-practices --copy
 ```
 
 ## Skills 列表
