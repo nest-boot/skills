@@ -1,49 +1,48 @@
 ---
 name: nest-boot-skill-maintainer
-description: 将 Nest Boot 项目开发中发现的可复用指引缺口转化为 `nest-boot/skills` 中的 skill 新增、修订、拆分、重命名、迁移、eval、GitHub issue 或 PR，并闭环语义验证、CI 与审查。适用于总结开发经验、调整 skill 边界或触发描述、处理已发布 skill 的升级路径、响应 PR 建议以及维护 skills 仓库；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或未经验证的猜测不应进入上游 skill。
+description: 在 Nest Boot 消费项目或 `nest-boot/skills` 仓库中维护和改进 agent skills。适用于直接修改项目已安装的 `.agents/skills` 副本并自评估、把成熟改进泛化后提交上游 issue 与 PR、新增或重组 skill、调整触发描述与 eval、处理拆分重命名迁移、同步合并后的正式版本以及闭环 CI 和审查；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或未经验证的猜测不应上游化。
 ---
 
 # Nest Boot Skill Maintainer
 
-## 目标
+## 目标与运行位置
 
-把业务项目中的真实问题沉淀为可复用、可验证的上游改进，同时避免把项目私有命名、临时 workaround、凭证或未经证实的偏好扩散到所有使用者。
+把真实开发问题转化为可复用、可验证的 skill 改进，同时允许改进先在消费项目中孵化，再以脱敏、通用的形式进入 `nest-boot/skills`。
 
-修改上游 `nest-boot/skills` 仓库，而不是业务项目中的 `.agents/skills/` 安装副本。同名内容更新通过官方安装工具分发；拆分、重命名或删除已发布 skill 时，必须先验证当前工具的更新行为并提供显式迁移路径。直接编辑安装副本会造成来源漂移并可能在下次更新时丢失。
+先识别当前宿主和候选版本的位置：
+
+- **消费项目模式**：可以直接修改已安装的 `.agents/skills/<name>/`，把它作为本地候选版本持续自改进和自评估。开始前保存原始版本与完整 `skills-lock.json`；lockfile 不存在时保存明确的 absence marker，便于建立 baseline 和生成上游 diff。不要手工伪造 lockfile 来源。
+- **上游仓库模式**：在 `nest-boot/skills` 的专用分支中直接修改 `skills/<name>/`。这里的目录是正式上游源码，不需要先修改 `.agents/skills` 安装副本。
+
+无论候选版本在哪里，每轮先冻结候选与 baseline 快照，再为每个 eval run 把对应快照**复制**到一次性执行根目录的 `.agents/skills/<name>/`，不要使用软链接。记录快照哈希并检查复制后的 skill 树不含软链接，避免并行 run 读取变化中的候选或反向修改候选版本。
 
 ## 维护流程
 
-1. **先解决并验证原问题**：记录观察结果、期望行为、最小复现、根因和验证命令。只有能解释“现有 skill 为什么没有预防该问题”时，才进入上游维护。
-2. **读取受影响的领域 skill**：检查其 `SKILL.md`、相关 reference 和 eval；必要时对照 `nest-boot/nest-boot` 的源码、测试或正式文档，不从单个项目实现推导框架通用规则。
-3. **判断归属**：按 [Issue 与仓库路由](references/issue-routing.md) 区分 skill 缺口、框架缺陷、依赖问题和项目私有问题。框架 BUG 或公开 API 改进改用 `$nest-boot-maintainer`；归属不清时继续诊断，不要猜测性修改多个仓库。
-4. **设计 skill 边界**：新增或大幅重组时使用项目安装的 `skill-creator`。让一个 skill 对应一个主要开发任务；工作流、产物或完成条件明显不同则拆分并交叉路由。框架中立能力只有在本仓库是合理所有者时才保留中立名称。
-5. **提炼通用规则**：删除项目名、客户数据、内部 URL、凭证和无关上下文。保留触发条件、决策标准、反例、正确做法与可观察验证。
-6. **选择 issue 或 PR**：对 `nest-boot/skills` 的明确修复直接提交带 eval 的 PR；需要维护者确认规则、范围或触发策略时先提交 issue。一个自解释 PR 不需要为了流程额外创建空洞 issue。
-7. **在上游分支修改**：检查工作区和远程状态，保留用户已有改动，从最新默认分支创建专用分支。不要直接推送 `main`，也不要覆盖不属于本任务的文件。
-8. **保持最小改动**：更新最相关的 `SKILL.md` 或 reference；新增规则、触发变化或迁移行为时同步新增或修改至少一个真实 eval。若修改 frontmatter description，重新生成 README。
-9. **验证语义与结构**：版本敏感或工具相关的规则要用官方源码/文档和最小行为探针验证；结构校验器、CI 或自动 reviewer 不能证明指引本身正确。随后在仓库根目录执行：
-
-   ```bash
-   python3 skills/nest-boot-skill-maintainer/scripts/update_readme.py --repo .
-   python3 skills/nest-boot-skill-maintainer/scripts/validate_skills.py --repo .
-   ```
-
-10. **设计发布迁移**：已发布 skill 被拆分、重命名或删除时，检查锁文件与当前安装工具行为，提供 remove/add 或兼容窗口，并确保旧、新 skill 不会长期重叠触发。上游合并后，只有得到消费项目授权才执行安装迁移。
-11. **提交外部变更**：只有用户明确要求创建 issue、推送分支或提交 PR 时才执行相应外部写操作。用户在当前请求中明确说“提交 issue/PR”即构成授权；目标仓库、公开范围或敏感性不清时先停下确认。
-12. **闭环 PR 审查**：用户要求在线审查或合并时，等待 CI 与 reviewer 回执，检查普通评论、review 和 inline thread，并确认审查覆盖当前 head SHA。修复后重新验证、推送和审查最新提交；只有用户授权且不存在未解决项时才合并。
-13. **交付证据**：报告根因、修改的 skill/eval、语义与确定性验证结果，以及 issue/PR 链接和最终状态。说明哪些项目细节被有意排除，方便维护者判断泛化是否合理。
+1. **诊断并路由问题**：记录观察结果、期望行为、最小复现、版本、根因和验证命令。按 [Issue 与仓库路由](references/issue-routing.md) 区分 skill 缺口、框架缺陷、依赖问题和项目私有问题；框架 BUG 或公开 API 改进改用 `$nest-boot-maintainer`。
+2. **读取实际版本与上游版本**：在消费项目中先读取触发问题的安装副本，并记录它与当前上游版本是否存在差异；在上游仓库中读取目标 `SKILL.md`、相关 reference 和 eval。不要把旧安装版本误当成最新上游行为。
+3. **建立本地基线**：改进已有 skill 时，在首次编辑前保存完整原始快照和完整 lockfile 状态。新增 skill 的 baseline 是不安装该 skill；已有 skill 的 baseline 可以是原始版本或上一轮稳定版本，但同一轮 paired runs 必须固定并可由哈希复核。
+4. **设计并迭代候选版本**：新增或大幅重组时使用项目提供的 `skill-creator`。将失败案例泛化为触发条件、决策规则、反例和可观察验证，删除项目名、客户数据、内部 URL、凭证和临时 workaround。同步新增或修改真实 eval。
+5. **隔离自评估**：触发测试可使用空白 fixture；依赖框架行为时使用消费项目的临时 worktree、最小复现项目或其他可丢弃副本。为 with-skill 与 baseline 复制相同 commit、依赖锁、项目输入和配置，再分别复制本轮不可变的候选与基线快照；保持模型、提示、权限、准备/验证命令和 run 数一致。使用 `skill-creator` 的 grader、benchmark 和 review viewer 汇总结果。
+6. **通过质量门槛**：至少确认目标失败已被新版本预防、关键 expectations 有证据、候选优于或不劣于 baseline、相关回归未出现，并处理用户 review 反馈。结构校验通过不能替代语义评估。
+7. **决定是否上游化**：项目私有规则留在本地。消费项目中孵化成熟且可泛化的改进，应准备一个记录问题、证据和本地评估结果的上游 issue，并提交关联 PR；直接在上游仓库完成的小型明确修复可以只提交自解释 PR，范围或设计未决时先 issue。
+8. **移植到上游源码**：从消费项目上游化时，定位或创建干净的 `nest-boot/skills` checkout，在专用分支把本地候选相对原始快照的通用改动移植到 `skills/<name>/`。不要把业务代码、项目数据、生成 workspace 或整个安装目录未经审查地复制进上游。
+9. **验证上游变更**：按 [贡献工作流](references/contribution-workflow.md) 运行目标 skill 的 quick validator、相关测试或行为探针、README 生成器和全仓校验器，并人工审查完整 diff。
+10. **执行获授权的外部操作**：创建 issue、推送分支、提交 PR 或合并都需要用户明确授权。提交后返回链接和 commit SHA；安全漏洞、凭证或可利用细节改走私密安全渠道。
+11. **闭环审查**：分别保存 issue URL/number、PR URL/number、当前 PR head SHA 和合并 commit，不要混用这些标识。所有 PR 查询与 inline thread 查询使用 PR URL 或 PR number；每次 push 后重新读取 head SHA，再检查 CI、普通评论、reviews 和 inline threads。旧提交的 clean 结果不能覆盖新提交。
+12. **合并后回同步消费项目**：确认 merge commit 已进入上游默认分支后，只有得到该消费项目的授权才运行官方 add/update/remove 命令。正式版本会替换本地候选；将安装内容与该默认分支中的已合并 skill 对照，并验证 `skills-lock.json`、旧名称清理和关键场景，确保项目使用已合并版本而非陈旧安装或遗留本地分叉。
+13. **交付证据**：报告宿主模式、候选与 baseline、修改的 skill/reference/eval、评估和确定性验证结果、issue/PR 状态，以及有意排除的项目私有内容。
 
 ## 自维护边界
 
-- 本 skill 自身出现缺口时，像维护其他 skill 一样更新它并增加 eval；不要在没有具体失败证据时进行递归“自动优化”。
-- 不在后台自动扫描项目、创建 issue 或发起 PR。维护由具体开发发现或用户请求触发。
-- 结构化 `autoreview` 只在用户明确要求时使用；无论是否使用，都要人工验证关键规则与真实工具行为。
-- 不把一个失败案例写成无条件规则。优先解释适用条件和原因，让其他 Agent 能根据宿主项目作出判断。
-- 安全漏洞、凭证泄漏或可利用细节不得提交公开 issue；停止公开发布流程并使用仓库维护者提供的私密安全渠道。
+- 本 skill 自身出现具体失败时，按同一流程建立 baseline、修改和评估；不要在没有失败证据时递归“自动优化”。
+- 本地孵化只修改用户置于范围内的安装副本，不后台扫描其他项目，也不自动创建 issue 或 PR。
+- 本地候选允许暂时偏离 lockfile 指向的上游内容，但不得把这种漂移冒充正式发布版本；合并后必须通过官方命令回同步。
+- 结构化 `autoreview` 只在用户明确要求时使用，并且不能代替真实代码路径、框架行为和 eval 证据。
+- 不把单个失败案例写成无条件规则。优先说明适用条件和原因，让其他 Agent 能根据宿主项目判断。
 
 ## 贡献细节
 
-- 准备分支、issue 和 PR 内容时阅读 [贡献工作流](references/contribution-workflow.md)。
-- 判断应修改哪个仓库、是否值得上游化时阅读 [Issue 与仓库路由](references/issue-routing.md)。
-- `scripts/update_readme.py` 根据所有 `SKILL.md` frontmatter 重建 README Skills 表格；使用 `--check` 仅检查漂移。
+- 本地孵化、上游分支、issue、PR、迁移和审查细节见 [贡献工作流](references/contribution-workflow.md)。
+- 判断问题所有权和本地候选是否值得上游化时读 [Issue 与仓库路由](references/issue-routing.md)。
+- `scripts/update_readme.py` 根据所有 `SKILL.md` frontmatter 重建 README Skills 表格；使用 `--check` 只检查漂移。
 - `scripts/validate_skills.py` 检查目录、frontmatter、references、eval、README 和 Markdown 基础质量。

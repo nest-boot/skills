@@ -14,7 +14,7 @@ Thank you for improving the guidance used by Nest Boot agents. Contributions sho
 1. Search open and closed Issues and PRs for the skill name and symptom.
 2. Capture a sanitized example showing what the agent did, what it should have done, and the evidence supporting the correction.
 3. Work from an up-to-date `main` on a dedicated branch. Preserve unrelated changes and never push directly to `main`.
-4. Use the project-installed OpenAI `skill-creator` when creating or substantially restructuring a skill.
+4. Use the project-provided `skill-creator` when creating or substantially restructuring a skill.
 
 Python validation requires [PyYAML](https://pyyaml.org/). Install it in your preferred virtual environment if it is not already available.
 
@@ -70,6 +70,6 @@ A pull request should contain:
 - every validation command actually run and its result;
 - scope intentionally excluded from the contribution.
 
-Use a focused title such as `fix(graphql): correct connection lookup guidance` or `feat: add nest boot maintainer skill`. Link an existing Issue with `Fixes #...` or `Refs #...` when applicable; a self-contained PR does not require a duplicate Issue.
+Use a focused title such as `fix(graphql): correct connection lookup guidance` or `feat: add nest boot maintainer skill`. A candidate incubated and evaluated in a consuming project should open an Issue containing that evidence and link the implementation PR with `Fixes #...` or `Refs #...`. A small, self-contained fix made directly in this upstream repository does not require a duplicate Issue.
 
 Agents may prepare diagnostics, branches, and draft content, but must not create an Issue, push a branch, or open a PR without explicit user authorization. They must return the resulting URL and commit SHA after an authorized submission.

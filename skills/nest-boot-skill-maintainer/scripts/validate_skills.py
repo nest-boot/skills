@@ -28,6 +28,7 @@ ALLOWED_FRONTMATTER_KEYS = {
     "compatibility",
 }
 EVAL_FIELDS = {"id", "prompt", "expected_output", "files", "expectations"}
+EVAL_TOP_LEVEL_FIELDS = {"skill_name", "evals"}
 
 
 def add_markdown_issues(
@@ -81,6 +82,18 @@ def validate_evals(skill_dir: Path, skill_name: str, errors: list[str]) -> int:
     if not isinstance(data, dict):
         errors.append(f"{eval_path}: top-level value must be an object")
         return 0
+    missing_top_level = EVAL_TOP_LEVEL_FIELDS - data.keys()
+    unexpected_top_level = data.keys() - EVAL_TOP_LEVEL_FIELDS
+    if missing_top_level:
+        errors.append(
+            f"{eval_path}: missing top-level fields: "
+            f"{', '.join(sorted(missing_top_level))}"
+        )
+    if unexpected_top_level:
+        errors.append(
+            f"{eval_path}: unexpected top-level fields: "
+            f"{', '.join(sorted(unexpected_top_level))}"
+        )
     if data.get("skill_name") != skill_name:
         errors.append(f"{eval_path}: skill_name must be {skill_name!r}")
 
@@ -105,8 +118,8 @@ def validate_evals(skill_dir: Path, skill_name: str, errors: list[str]) -> int:
             )
 
         eval_id = item.get("id")
-        if not isinstance(eval_id, int):
-            errors.append(f"{label}.id must be an integer")
+        if type(eval_id) is not int or eval_id < 1:
+            errors.append(f"{label}.id must be a positive integer")
         else:
             ids.append(eval_id)
         for field in ("prompt", "expected_output"):
@@ -125,8 +138,18 @@ def validate_evals(skill_dir: Path, skill_name: str, errors: list[str]) -> int:
             errors.append(f"{label}.files must be a list")
         else:
             for file_name in files:
-                if not isinstance(file_name, str) or not (skill_dir / file_name).is_file():
+                if not isinstance(file_name, str) or not file_name.strip():
                     errors.append(f"{label}: missing input file {file_name!r}")
+                    continue
+                relative_file = Path(file_name)
+                candidate = (skill_dir / relative_file).resolve()
+                if (
+                    relative_file.is_absolute()
+                    or ".." in relative_file.parts
+                    or not candidate.is_relative_to(skill_dir.resolve())
+                    or not candidate.is_file()
+                ):
+                    errors.append(f"{label}: missing or unsafe input file {file_name!r}")
 
     if len(ids) != len(set(ids)):
         errors.append(f"{eval_path}: eval IDs must be unique")

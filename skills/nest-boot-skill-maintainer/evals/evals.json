@@ -3,14 +3,15 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "我在项目里照 nest-boot-graphql skill 写 Connection，发现示例注入了 ConnectionManager 却调用不存在的 service.getConnection。问题已经用本地框架源码确认了，请把经验沉淀到上游 skill，并提交 PR。",
-      "expected_output": "将问题路由到 nest-boot/skills，更新 GraphQL reference 与对应 eval，运行 README/全仓校验，从专用分支提交一个包含证据和验证结果的 PR。",
+      "prompt": "我在这个 Nest Boot 项目里安装的 nest-boot-graphql skill 给了错误的 Connection 调用。我想直接改 .agents/skills/nest-boot-graphql，自评估几轮；效果稳定后给 nest-boot/skills 提 issue 和 PR，合并后再更新本项目。请按这个流程处理。",
+      "expected_output": "允许把项目中的安装副本作为本地候选直接修改，先保存原始版本和完整锁文件状态，再把每轮冻结的候选与 baseline 分别复制到隔离项目副本中配对评估；成熟后将通用 diff、证据和评估结果整理为上游 issue 与关联 PR，严格区分 issue、PR、head 与 merge 标识，合并后通过官方命令更新项目并验证正式版本。",
       "files": [],
       "expectations": [
-        "不修改业务项目中的 .agents/skills 安装副本",
-        "对照框架源码确认 ConnectionManager.find 的真实 API，并只修改相关 skill/reference",
-        "新增或更新能复现旧错误的 eval，运行维护脚本后从非 main 分支提交 PR",
-        "修复明确时不创建内容重复的仪式性 issue"
+        "明确允许直接修改消费项目的 .agents/skills/nest-boot-graphql，并在首次编辑前保存完整原始快照和完整 skills-lock.json；lockfile 不存在时记录 absence marker",
+        "每轮先冻结并记录候选与 baseline 哈希，每个 eval run 再把对应快照复制到可丢弃执行根目录，验证 skill 树无软链接，并保持 commit、依赖锁、提示、模型、配置、权限与验证命令一致",
+        "达到语义质量门槛后，把相对原始快照的通用改动移植到独立 nest-boot/skills checkout，准备包含证据和本地评估结果的 issue、关联 PR 内容与经授权执行的命令",
+        "issue、PR、当前 head 与 merge commit 使用各自的 URL/number/SHA，PR 查询和 reviewThreads 不复用 issue number，push 后重新读取 head SHA",
+        "确认 merge commit 已进入上游默认分支后才通过官方命令更新消费项目，并将安装内容与已合并 skill 对照，同时验证 lockfile 和关键场景"
       ]
     },
     {
@@ -46,7 +47,7 @@
         "按主要开发任务、执行顺序和完成条件判断拆分，而不是只因文件长度或 review 场景改名",
         "检查旧 skill 是否已进入默认分支、README、skills-lock.json 和安装目录",
         "不假设 skills update 会删除旧名称或安装新名称，先验证当前 CLI 再给出 remove/add 命令",
-        "不直接编辑 .agents/skills 副本，并验证迁移后不会同时加载新旧重叠 skill"
+        "允许在消费项目安装副本中先孵化拆分方案，但上游 PR 只包含泛化后的源码与 eval；合并后用官方命令迁移并验证不会同时加载新旧重叠 skill"
       ]
     },
     {
@@ -68,9 +69,21 @@
       "files": [],
       "expectations": [
         "比较 reviewer 的 reviewed commit 与当前 headRefOid，不把旧提交的 clean 回执用于新提交",
-        "同时检查 CI、普通评论、reviews 和 inline reviewThreads，不把暂时没有评论当作审查完成",
+        "严格区分 issue number、PR number、当前 head SHA 与 merge SHA；所有 PR 和 inline reviewThreads 查询使用 PR 标识，不把暂时没有评论当作审查完成",
         "每条建议先回读真实代码或外部行为，修复后重新验证、推送并审查最新 head",
         "只有当前 head 无未解决项且用户明确授权时才合并，并验证远端默认分支包含合并结果提交"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "我现在就在 nest-boot/skills 仓库里。nest-boot-logger 的一个示例字段名写错了，真实 API 和修复范围都很明确。直接修好、补 eval 并提交 PR，不要为了流程额外建 issue。",
+      "expected_output": "识别当前宿主就是上游仓库，在专用分支直接修改 skills/nest-boot-logger 与相关 eval，完成语义和全仓验证后提交自解释 PR；由于问题明确且用户不要重复 issue，不要求先修改 .agents 安装副本或创建仪式性 issue。",
+      "files": [],
+      "expectations": [
+        "识别上游仓库模式，直接修改 skills/nest-boot-logger 而不是先编辑 .agents/skills 安装副本",
+        "从最新默认分支使用专用分支，保持改动集中在相关 skill/reference/eval",
+        "用真实 API 证据、目标 eval、quick validator、README 和全仓校验证明修复",
+        "遵循用户要求提交自解释 PR，不额外创建内容重复的 issue"
       ]
     }
   ]

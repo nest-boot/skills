@@ -33,7 +33,10 @@ def read_frontmatter(skill_md: Path) -> dict[str, object]:
     if match is None:
         raise ValueError(f"{skill_md}: invalid or missing YAML frontmatter")
 
-    data = yaml.safe_load(match.group(1))
+    try:
+        data = yaml.safe_load(match.group(1))
+    except yaml.YAMLError as error:
+        raise ValueError(f"{skill_md}: invalid YAML frontmatter: {error}") from error
     if not isinstance(data, dict):
         raise ValueError(f"{skill_md}: frontmatter must be a mapping")
     return data
@@ -96,12 +99,16 @@ def render_table(skills: list[SkillMetadata]) -> str:
 
 
 def replace_generated_table(readme: str, table: str) -> str:
+    if readme.count(START_MARKER) != 1 or readme.count(END_MARKER) != 1:
+        raise ValueError(
+            "README.md must contain exactly one start marker and one end marker"
+        )
     pattern = re.compile(
         rf"{re.escape(START_MARKER)}.*?{re.escape(END_MARKER)}", re.DOTALL
     )
     if pattern.search(readme) is None:
         raise ValueError(
-            f"README.md must contain {START_MARKER!r} and {END_MARKER!r}"
+            "README.md generated Skills table markers are in the wrong order"
         )
     return pattern.sub(lambda _match: table, readme, count=1)
 
