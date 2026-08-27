@@ -32,6 +32,7 @@
       "files": [],
       "expectations": [
         "明确 response.json/text/arrayBuffer 会整体缓冲，request body 是 stream 不代表端到端有界",
+        "Node.js fetch 发送流式 request body 时显式设置 duplex: 'half'，并正确连接 Node/Web stream 与 abort signal",
         "先检查 Content-Length 再累计真实 chunk 字节，超限立即取消 reader/body",
         "不读取的非 2xx response body 被取消，解析或读取错误不泄漏资源",
         "AbortSignal 或 AbortController 的 deadline 覆盖连接、上传和响应 body 读取"
@@ -71,6 +72,18 @@
         "临时目录只在活动 RequestContext 中分配，且只有一个清理所有者",
         "动态 FileInterceptor 需要注入依赖时通过 ModuleRef.create 或等价容器机制构造",
         "controller、后台消费者和异常路径不会越过上下文边界继续使用已清理文件"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "实现一个 Node.js gzip 解压导入器：压缩包上传限制为 20 MB，但输入可能具有极高压缩比，解压结果要写盘后再解析。请保证内存和磁盘使用有界并补测试。",
+      "expected_output": "在压缩输入和展开输出两个表示边界分别累计字节，限制 expansion ratio，并通过同一 pipeline 在超限、取消或 sink 失败时终止 source、transform 和 sink。",
+      "files": [],
+      "expectations": [
+        "压缩输入限制不能替代解压后输出限制，两侧都有独立字节预算",
+        "按业务风险设置展开字节上限和必要的 expansion ratio，超限立即终止解压",
+        "pipeline 传播背压、abort 和错误，部分输出由单一生命周期所有者清理",
+        "测试覆盖小输入高膨胀、跨块超限、慢 sink 和重复失败后的内存与磁盘回收"
       ]
     }
   ]

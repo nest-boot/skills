@@ -22,7 +22,9 @@ description: 在 Node.js 服务、CLI 与 worker 中设计、实现、重构和�
 - **转换与消费：** 优先使用 `pipeline()`、异步迭代或可证明保留背压的框架代理；不要用裸 `data` 监听器把 chunk 推入无界数组或队列。
 - **临时文件：** 需要 seek、重试或多次消费时，先流式写入由当前操作拥有的临时文件，每次消费重新 `createReadStream()`；所有成功、失败和取消路径都由同一个生命周期所有者清理。
 - **multipart 与重试：** 每次串行 attempt 重建 body、boundary 和文件流，不能复用已经读取或失败的 stream；可计算时发送准确 `Content-Length`。
+- **Node.js fetch 请求：** 原生 `fetch` 发送流式 body 时显式设置 `duplex: 'half'`，并按运行时要求使用或转换 Node/Web stream；把同一个 abort signal 传给请求和本地 source。
 - **HTTP 响应：** `Response.json()`、`text()`、`arrayBuffer()` 仍会整体缓冲。先实现按字节有界读取；非成功或不再读取的响应必须取消，完整交换必须有 deadline。
+- **压缩与解压：** 分别限制压缩输入和展开输出，必要时限制 expansion ratio；输入字节有界不代表解压后的磁盘、内存或下游对象有界。
 - **对象存储与代理：** 核对具体 SDK/框架实现是否真正流式，显式传递已知长度，配置分片大小与队列并发，并把 abort/error 传播到原始 source。
 - **子进程：** 不需要的输出设为 `ignore`；需要的输出限制字节数，并在超时或超限时终止进程。不要无上限拼接 stdout/stderr 字符串。
 - **下游处理：** JSON 解析、字符数组、解压、日志序列化或响应映射可能再次复制或放大整个结果；开发完成前检查它们不会使前面的流式设计失效。

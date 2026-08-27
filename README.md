@@ -23,6 +23,19 @@ npx skills add https://github.com/nest-boot/skills \
   -y
 ```
 
+### 从 `nest-boot-best-practices` 升级
+
+`nest-boot-best-practices` 已拆分为 `nest-boot-module-design` 和 `nest-boot-domain-renaming`。`skills update -y` 不会自动删除上游已移除的 skill，也不会自动安装新名称；已有项目需要显式迁移，并可同时安装新增的 `nodejs-streaming`：
+
+```sh
+npx skills remove nest-boot-best-practices -y
+npx skills add https://github.com/nest-boot/skills \
+  --skill nest-boot-module-design nest-boot-domain-renaming nodejs-streaming \
+  --agent universal \
+  --copy \
+  -y
+```
+
 ## Skills 列表
 
 <!-- BEGIN GENERATED SKILLS -->
