@@ -4,12 +4,11 @@ Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态下的
 
 ## 使用
 
-建议在项目根目录中以项目级别安装本仓库中的所有 skills，并同时安装到 Claude Code 与通用 `.agents/skills/` 目录：
+建议在项目根目录中以项目级别安装本仓库中的所有 skills，并安装到通用 `.agents/skills/` 目录：
 
 ```sh
 npx skills add https://github.com/nest-boot/skills \
   --all \
-  --agent claude-code \
   --agent universal \
   --copy \
   -y
@@ -20,7 +19,6 @@ npx skills add https://github.com/nest-boot/skills \
 ```sh
 npx skills add https://github.com/nest-boot/skills \
   --skill nest-boot-best-practices \
-  --agent claude-code \
   --agent universal \
   --copy \
   -y
@@ -43,7 +41,6 @@ npx skills add https://github.com/nest-boot/skills \
 ```sh
 npx skills add https://github.com/anthropics/skills \
   --skill skill-creator \
-  --agent claude-code \
   --agent universal \
   --copy \
   -y
