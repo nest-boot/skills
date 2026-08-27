@@ -1,0 +1,65 @@
+{
+  "skill_name": "nest-boot-streaming",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "为 NestJS 新增一个最大 100 MB 的音频转写接口：上传文件需要发给 OpenAI-compatible provider，502 可重试两次，不能把音频整体放进内存。请实现并补测试。",
+      "expected_output": "把上传流式落到请求上下文拥有的临时文件，从磁盘为每次串行 attempt 新建 multipart body，并实现字节限制、完整交换 deadline、取消、清理和内存回归。",
+      "files": [],
+      "expectations": [
+        "不使用 readFile、Blob、FormData 或 Buffer.concat 把完整音频载入内存",
+        "每次重试重新创建 boundary、multipart body 和 createReadStream，attempt 串行执行",
+        "失败 request body 被销毁，未读 response body 被取消，deadline 覆盖完整响应读取",
+        "测试验证每次 attempt 的完整字节数、不同 stream 实例以及重复请求后的有界内存"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "实现一个 NestJS 远程文件下载服务：只允许最多 100 MB 的响应，目标写入临时目录；上游可能不发 Content-Length，磁盘也可能写入失败。",
+      "expected_output": "先做 header 预检，再用 pipeline 和实际字节计数写盘，在超限、超时或 sink 失败时停止 source，并把部分文件交给明确的生命周期所有者清理。",
+      "files": [],
+      "expectations": [
+        "同时做 Content-Length 预检与流中实际字节计数，不信任 header 是唯一限制",
+        "使用 pipeline 或等价机制传播背压和 sink 错误，不用裸 pipe 后忽略完成状态",
+        "超限、写盘失败和超时会 abort 或 destroy 上游 source",
+        "部分文件由单一生命周期所有者在成功和异常路径清理"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "实现一个 NestJS 外部推理 provider：request body 是 Readable，成功响应为 JSON，错误响应内容不需要返回。响应可能使用 chunked encoding，请保证内存和连接有界。",
+      "expected_output": "实现按实际字节有界的 JSON 文本读取、非成功响应取消和覆盖完整交换的 deadline，并根据解析副本和最大并发选择响应上限。",
+      "files": [],
+      "expectations": [
+        "明确 response.json/text/arrayBuffer 会整体缓冲，request body 是 stream 不代表端到端有界",
+        "先检查 Content-Length 再累计真实 chunk 字节，超限立即取消 reader/body",
+        "不读取的非 2xx response body 被取消，解析或读取错误不泄漏资源",
+        "AbortSignal 或 AbortController 的 deadline 覆盖连接、上传和响应 body 读取"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "为 NestJS 媒体模块实现一个 spawn 子进程探测器，并在队列中批量处理文件。协议只需要 stdout 的一个短值，stderr 不需要返回。请给出实现和测试。",
+      "expected_output": "忽略不需要的 stderr，对 stdout 设置协议级字节上限和进程 deadline，并用受控并发批量处理文件。",
+      "files": [],
+      "expectations": [
+        "不需要的 stderr/stdout 使用 ignore，不为了错误消息无上限保留输出",
+        "需要的输出按字节限制，超限或超时 kill 子进程且 Promise 只 settle 一次",
+        "用受控 worker 或并发映射替代一次启动 40 个重任务",
+        "峰值预算同时计算每个子进程、pipe 缓冲、保存输出和并发数"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "代码把 createReadStream 传给 S3 SDK，并用框架 proxy 转发上传，所以同事认为肯定不会 OOM。请给出审查结论和验证方案。",
+      "expected_output": "不凭 Readable 类型下结论，核对当前 SDK 和代理实现，计算 multipart 分片队列乘业务并发的峰值，并用慢速真实流和取消场景验证。",
+      "files": [],
+      "expectations": [
+        "检查 SDK 是否缓存、签名或 multipart 分片，已知时传 Content-Length",
+        "计算 partSize 乘 queueSize 再乘 request 或 worker concurrency 的总预算",
+        "核对代理是否直接转发 request/response body，而不是先 arrayBuffer 或 formData",
+        "用慢速大流、客户端断开、sink 失败和内存观测验证，不只断言 mock 收到 Readable"
+      ]
+    }
+  ]
+}
