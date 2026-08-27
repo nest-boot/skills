@@ -1,0 +1,18 @@
+{
+  "skill_name": "release-readiness",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a production rollout plan for payments-api v4. The new version adds a nullable ledger_ref column, changes a BullMQ payload by adding an optional source field, and will run beside v3 for 30 minutes. Error rate, queue lag, and reconciliation mismatches are available, but no rollback owner is named yet.",
+      "expected_output": "Produce an evidence-backed staged rollout that addresses v3/v4 database and queue compatibility, names observable stop conditions, treats the missing rollback owner as a blocker, and verifies recovery after rollback.",
+      "files": [],
+      "expectations": [
+        "The plan explicitly checks v3/v4 compatibility for both the nullable database column and optional queue payload field",
+        "Rollout stages have observable gates using error rate, queue lag, and reconciliation mismatches rather than generic monitoring language",
+        "The missing rollback owner is reported as required evidence or a release blocker, not silently invented",
+        "Rollback identifies what is reverted and includes post-rollback reconciliation or recovery verification",
+        "The final decision is conditional on the named evidence and stop conditions"
+      ]
+    }
+  ]
+}
