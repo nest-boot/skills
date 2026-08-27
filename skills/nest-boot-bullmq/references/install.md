@@ -6,7 +6,7 @@
 
 ## 1. 定义队列名称常量
 
-永远不要在依赖注入或装饰器中硬编码队列的名字字符串。第一时间在对应的 `constants` 文件中声明它。
+在依赖注入、模块注册与 Processor 装饰器之间共享同一个队列名称常量，避免重命名时遗漏字符串。
 
 **`xxx.constants.ts`**
 ```typescript
@@ -39,4 +39,4 @@ import { SourceService } from './source.service';
 export class SourceModule {}
 ```
 
-*(注意：底层与 Redis 链接通信所需的全局 `BullModule` 配置化已统一在项目 `CommonModule` 等基础设施层启动，各子系统只需聚焦于自己 `registerQueue` 的声明即可。)*
+在注册 feature queue 前，先检查宿主应用是否已经在根模块或公共基础设施模块中完成 BullMQ/Redis 的一次性全局配置。不要假定模块一定名为 `CommonModule`，也不要在每个业务模块中重复初始化连接。

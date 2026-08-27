@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-bullmq",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "给 source 队列新增 process 和 delete 两种任务，要求生产者与 Processor 在 TypeScript 中共享任务名和 payload 类型。",
+      "expected_output": "用共享队列常量和 Job 可辨识联合约束 Queue.add 与 Processor 路由，并让具体处理方法接收缩窄后的任务类型。",
+      "files": [],
+      "expectations": [
+        "队列注册、InjectQueue 和 Processor 使用同一个名称常量",
+        "process 与 delete 分别定义包含 name 和 payload 的 Job 类型并组成联合",
+        "Processor 根据 job.name 路由，具体 handler 接收对应的窄化 Job 类型"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "BullMQ 任务偶尔重复投递，而且日志里查不到是哪条资源触发的，请改造投递和处理代码。",
+      "expected_output": "使用带领域前缀的稳定 jobId，并在 Processor 的请求上下文内绑定安全的 job 与资源标识。",
+      "files": [],
+      "expectations": [
+        "jobId 使用稳定领域前缀且不是纯整数",
+        "Processor 使用 Logger.assign 记录 jobId、jobName 和安全资源标识",
+        "不把完整 payload、凭证或敏感第三方载荷写入日志"
+      ]
+    }
+  ]
+}

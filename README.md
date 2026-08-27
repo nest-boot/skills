@@ -26,13 +26,14 @@ npx skills add https://github.com/nest-boot/skills \
 
 ## Skills 列表
 
-| Skill                                                        | 描述                                                         |
-| ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [nest-boot-best-practices](skills/nest-boot-best-practices/) | 使用 `@nest-boot` 框架构建 NestJS 应用时的代码组织与架构规范 |
-| [nest-boot-bullmq](skills/nest-boot-bullmq/)                 | 使用 `@nest-boot/bullmq` 实现类型安全的异步任务队列          |
-| [nest-boot-graphql](skills/nest-boot-graphql/)               | 使用 `@nest-boot/graphql` 构建 GraphQL API                   |
-| [nest-boot-logger](skills/nest-boot-logger/)                 | 使用 `@nest-boot/logger` 实现结构化日志                      |
-| [nest-boot-mikro-orm](skills/nest-boot-mikro-orm/)           | 使用 `@nest-boot/mikro-orm` 进行数据库操作的最佳实践         |
+| Skill | 描述 |
+| --- | --- |
+| [nest-boot-best-practices](skills/nest-boot-best-practices/) | 使用 `@nest-boot` 构建或重构 NestJS 业务模块时的通用组织与命名规范。适用于新增领域，调整 Entity、Service、Resolver、DTO 或 Enum，重命名实体、表或模块，以及检查服务端、客户端与数据库之间的跨层一致性。 |
+| [nest-boot-bullmq](skills/nest-boot-bullmq/) | 使用 `@nest-boot/bullmq` 构建和管理 NestJS 异步任务队列的通用规范。适用于创建队列、定义 Job payload、注册 Processor、投递任务或排查队列依赖注入，重点保证名称与载荷类型安全、注册关系一致和处理器职责清晰。 |
+| [nest-boot-graphql](skills/nest-boot-graphql/) | 使用 `@nest-boot/graphql` 编写、暴露、重命名、审查或排查 GraphQL Schema、Resolver、ResolveField、Input、Args、Connection 及客户端 operation 的通用规范。适用于 schema 类型冲突、关联字段缺失、代码通过编译但真实 GraphQL 查询失败或跨层名称需要同步的场景。 |
+| [nest-boot-logger](skills/nest-boot-logger/) | 使用 `@nest-boot/logger` 在 NestJS 可注入类中记录结构化日志的通用规范。适用于添加日志、调试结构化追踪、配置 LoggerModule 或排查日志上下文，重点覆盖依赖注入、上下文绑定、日志级别与敏感数据保护。 |
+| [nest-boot-mikro-orm](skills/nest-boot-mikro-orm/) | 使用 `@nest-boot/mikro-orm` 构建 NestJS 持久化层的通用规范，覆盖 Entity、EntityService、关系、迁移、Seeder、外部供应商中立建模、锁与数据库验证。适用于新增或重构持久化功能，修改表、列、枚举、外键或索引，重命名实体，生成或审查迁移，以及排查 schema drift。 |
+| [nest-boot-row-level-security](skills/nest-boot-row-level-security/) | 使用 `@nest-boot/row-level-security` 新增、重构、审查或排查实体 Policy、RowLevelSecurity 上下文、`RequestContext.child` 局部 RLS 绕过、MikroORM 迁移或 PostgreSQL RLS 行为的通用规范。 |
 
 ## 维护
 

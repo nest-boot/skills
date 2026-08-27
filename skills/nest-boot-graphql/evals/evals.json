@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-graphql",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "新增订阅域后 GraphQL schema 报 There can be only one type named Subscription，修复并验证。",
+      "expected_output": "避免领域对象与 GraphQL root Subscription 冲突，采用带领域限定的 TenantSubscription 并同步 operation/codegen。",
+      "files": [],
+      "expectations": [
+        "不将领域 ObjectType 命名为 Query、Mutation 或 Subscription",
+        "将领域类型与相关 resolver/input/operation 更名为 TenantSubscription",
+        "通过 schema 生成、客户端 codegen 和真实 GraphQL 查询验证"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "TenantSubscription.plan 是 MikroORM Ref，TypeScript 通过但 GraphQL 查询 plan 时失败。",
+      "expected_output": "用显式 ResolveField 解包 Ref，确保返回类型与 schema 一致。",
+      "files": [],
+      "expectations": [
+        "识别 MikroORM Ref 不等于 GraphQL 期望的实体对象",
+        "使用 @ResolveField 并正确解包或加载关联",
+        "使用包含 plan 字段的真实 operation 做运行时验证"
+      ]
+    }
+  ]
+}

@@ -1,23 +1,29 @@
-# `nest-boot` 项目结构架构指南
+# `nest-boot` 模块结构指南
 
-当跨 `@nest-boot` 基础 NestJS 构建或修改代码体系时，务必遵从下方声明的组织模式架构：
+使用 `@nest-boot` 构建或修改 NestJS 模块时，先识别宿主应用的源码根目录、业务模块根目录、数据库目录和公共基础设施目录。不要把某个仓库的包名或路径当成框架要求。
 
-## 1. 核心目录限制 (仅限于 `./src/app`)
+## 1. 识别宿主目录
 
-所有的 NestJS 系统功能模块（如 Controller、Service、Resolver、Entity）**必须**存放在 `./src/app/` 目录下。绝对禁止将新的业务模块直接放置在 `./src/` 的根级或者单独建立平行于 `app` 的子目录。
+在新建文件前检查相邻模块、`nest-cli.json`、`tsconfig` 路径映射、ORM 配置和 `package.json` 脚本，以确认：
+
+- 业务模块位于 `src/app`、`src/modules`，还是 monorepo 中某个应用包内；
+- migration、Seeder 与生成 schema 的实际输出位置；
+- 公共基础设施由根模块、`CommonModule` 或其他组合模块承载；
+- 文件命名、导入别名和模块导出方式。
+
+新增模块应进入已有业务模块根目录，不要在 `src/` 下创建一套平行结构。若宿主尚无明确约定，优先选择 `src/modules/<domain>`，并让数据库与基础设施目录保持独立。
 
 ## 2. 将泛型枚举提取至独立文件
 
-**绝对禁止**在 Entity 实体、Resolver 或是 Service 类型内，直接以行内（inline）形式进行原生 TypeScript `enum` 的声明与构建。
-一切 Enum 都必须被单独切分、提取至包含该模块内容的 `enums/` 专属目录下的独立文件当中。
+被 Entity、Resolver、Input 或客户端契约共享的 TypeScript `enum` 应提取到模块的 `enums/` 目录，以提供稳定导入路径并避免重复字面量。仅用于单个局部实现、不会进入持久化或公开契约的类型可沿用宿主项目约定。
 
 ### 坏代码示范 (反直觉模式)
 
 ```typescript
 // source-chunk.entity.ts （堆砌）
 export enum SourceChunkStatus {
-  WAITING = 'waiting',
-  COMPLETED = 'completed',
+  WAITING = 'WAITING',
+  COMPLETED = 'COMPLETED',
 }
 
 @Entity()
@@ -33,9 +39,9 @@ export class SourceChunk {
 ```typescript
 // enums/source-chunk-status.enum.ts
 export enum SourceChunkStatus {
-  WAITING = 'waiting',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  WAITING = 'WAITING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 ```
 
@@ -57,39 +63,40 @@ export class SourceChunk {
 
 ## 3. 目录布局拓扑树全景标准
 
-为了给后续所有代码生成的依赖和拆分提供精确参照，以下是我们整个应用（`./src/app`）最新的整体物理拓扑图谱，请严格照此结构来定位、新建或是管理对应模块层级：
+以下仅展示一种可适配的布局。实际路径以宿主应用为准，关键是不混合业务模块、数据库工件与公共基础设施：
 
 ```text
-./src
-├── app
-│   ├── app.module.ts
-│   ├── ... (其他业务模块)
+<application-root>/src
+├── modules
 │   ├── user
 │   │   ├── user.entity.ts
 │   │   ├── user.module.ts
 │   │   ├── user.resolver.ts
 │   │   └── user.service.ts
-│   ├── workspace
+│   ├── team
 │   │   ├── enums/
 │   │   ├── inputs/
-│   │   ├── workspace.connection-definition.ts
-│   │   ├── workspace.entity.ts
-│   │   ├── workspace.module.ts
-│   │   ├── workspace.resolver.ts
-│   │   └── workspace.service.ts
-│   └── workspace-member
+│   │   ├── team.connection-definition.ts
+│   │   ├── team.entity.ts
+│   │   ├── team.module.ts
+│   │   ├── team.resolver.ts
+│   │   └── team.service.ts
+│   └── team-member
 │       ├── enums/
 │       ├── inputs/
 │       ├── types/
-│       ├── workspace-member-permission.enum.ts
-│       ├── workspace-member.connection-definition.ts
-│       ├── workspace-member.entity.ts
-│       ├── workspace-member.module.ts
-│       ├── workspace-member.resolver.ts
-│       └── workspace-member.service.ts
+│       ├── team-member.connection-definition.ts
+│       ├── team-member.entity.ts
+│       ├── team-member.module.ts
+│       ├── team-member.resolver.ts
+│       └── team-member.service.ts
+├── common
+│   └── ... (共享基础设施)
 └── database
-    └── migrations
-        └── ... (各类基于前缀日期生成的数据库迁移文件)
+    ├── migrations
+    │   └── ... (各类基于前缀日期生成的数据库迁移文件)
+    └── seeders
+        └── ... (MikroORM Seeder)
 ```
 
-只要能够恒定遵循这种模式规范，我们就能从根源上缓解环形依赖产生的代码连锁困境，外部任意其他模块也能得以以最安全的颗粒度专门摄取其中纯净的枚举对象或者 Interface 而绝不可能导致引擎污染。
+保持这种职责边界有助于减少循环依赖，并让其他模块按最小粒度导入枚举、接口或服务。

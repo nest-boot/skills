@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-best-practices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把内部 Subscription 全面改名为 TenantSubscription，包括表、文件、模块和客户端查询。",
+      "expected_output": "区分领域概念与外部协议字面量，完成服务端、客户端、GraphQL 与 MikroORM 的命名闭环并审计残留。",
+      "files": [],
+      "expectations": [
+        "先识别宿主模块根目录，再将目录迁移到 <module-root>/tenant-subscription，文件使用 tenant-subscription 前缀",
+        "实体、模块、Service、Resolver、GraphQL 类型和表名保持一致",
+        "对全仓执行旧名称残留审计，但保留供应商协议要求的 subscription 字段"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "在一个使用 @nest-boot 的 NestJS 服务中新增带状态枚举的 tenant-scoped 业务模块。",
+      "expected_output": "沿用宿主模块根目录并按关注点拆分模块，把枚举放在独立 enums 文件。",
+      "files": [],
+      "expectations": [
+        "业务代码位于从相邻模块和配置识别出的 <module-root>/<domain>",
+        "enum 位于模块 enums 目录的独立文件",
+        "Entity、Module、Resolver、Service 及 DTO/Input 不会堆叠在单文件"
+      ]
+    }
+  ]
+}

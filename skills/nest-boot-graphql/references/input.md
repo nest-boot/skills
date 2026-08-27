@@ -1,19 +1,19 @@
 # `nest-boot-graphql` GraphQL Input 网关输入架构规范
 
-在使用 `@nest-boot` 应用构建外部的 GraphQL 客户端 API 接口时，对于入参模型必须强制进行独立目录切割防腐：严禁使用随意的参数对象内联或把 `@Args` 类型定义成堆塞入 Resolver 之中。
+在 `@nest-boot` GraphQL API 中，多字段、可复用或需要 class-validator 的输入使用独立 class。简单的 `id`、游标或开关等单一标量可以直接使用 `@Args()`，前提是意图清晰且沿用宿主项目约定。
 
-## 1. 必须单独创建专门的专属输入与参数层
+## 1. 选择 Input 与 Args
 
-根据它对应的业务操作类型，强制转移至具备高鲜明性的子级模型架构夹层：
+根据操作边界组织模型：
 
 - **`inputs/` 目录**：用于承接所有针对执行写入性质操作 (Mutation) 涉及的对象体类型(`@InputType()`)。例如 `create-user.input.ts`。
 - **`args/` 目录**：专注于定义获取性质、节点结构控制操作 (Query) 时所需要用到的标尺、连接条件 (`@ArgsType()`)。例如 `user.args.ts`。
 
 ## 2. GraphQL 解耦设计验证与对比
 
-### ❌ 坏代码示范（在 Resolver 内直接散乱铺设参数）
+### 不推荐：多个相关字段散落在 Resolver 参数中
 
-严禁直接往 `Resolver` 的实体内部注入未加防腐阻击、无法复用的原子散列传参：
+当多个字段共同构成一个写入契约时，不要把它们拆成一组难以复用和验证的标量参数：
 
 ```typescript
 // 文件位置混乱：没独立，且直接写在了 resolver 函数内
@@ -28,12 +28,12 @@ async createUser(
 }
 ```
 
-### ✅ 优秀规范示范（独立 Input 模型进行聚合和验证层化）
+### 推荐：独立 Input 聚合验证
 
-一定要抽离所有的属性至专属独立的 Graph 模型，并在进入 Service 的主业流水前运用 `class-validator` 开展属性强筛：
+将相关字段聚合为 GraphQL Input，并在进入 Service 前使用 class-validator 验证：
 
 ```typescript
-// 文件存放位置：src/app/user/inputs/create-user.input.ts
+// 文件存放位置：<module-root>/user/inputs/create-user.input.ts
 
 @InputType()
 export class CreateUserInput {
@@ -50,7 +50,7 @@ export class CreateUserInput {
 }
 ```
 
-然后再去 Resolver 处直接引入此一整条高度纯净统一的安全对象管道：
+Resolver 只接收完整输入对象：
 
 ```typescript
 // user.resolver.ts
@@ -62,3 +62,5 @@ async createUser(
   return this.userService.create(input);
 }
 ```
+
+对于 `user(id: ID!)` 这类单一、明确且无需复用的参数，直接使用 `@Args('id')` 是合理的，不必额外创建只有一个字段的 Args class。

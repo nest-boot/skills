@@ -1,18 +1,18 @@
 # GraphQL 枚举 (Enum) 安全注册与映射规范
 
-当我们的系统使用独立提取的枚举值（如：`SourceStatus` 或 `SourceType` 等）作为与客户端通讯及数据库的底层值源时，必须严格遵守 GraphQL Schema 层与底层数据实体的桥接规范。
+当独立枚举（如 `SourceStatus`）需要进入 GraphQL schema 时，显式注册它，并让 GraphQL 名称、TypeScript 名称与持久化值保持可追踪的对应关系。
 
 ## 1. 独立使用与变量名映射统一（最重点）
 
 当你在 `enums/` 目录下创建一个强类型的 `TS Enum` 抛出时，如果该值需要成为能够被 GraphQL 客户端感知和操作的安全常量范围：
 
-- 必须通过引入 `@nest-boot/graphql` （或原生的 `@nestjs/graphql`）带来的 `registerEnumType` 方法，在同一份定义文件内将其自动注册为底层支持的类型集。
-- 🚨 **强约束：**你填入用来注册的参数 `name` 的选项字符串，**必须与定义的 TS 变量名称分毫不差**。绝不允许瞎编或缩写映射名称！
+- 使用 `@nest-boot/graphql`（或宿主应用统一采用的 `@nestjs/graphql`）导出的 `registerEnumType` 注册枚举。
+- 默认让 `name` 与 TypeScript 枚举名一致，减少 schema 与代码之间的映射成本。只有兼容既有公开 schema 时才保留不同名称，并补充测试与迁移说明。
 
-### ✅ 最佳规范定义示范（保持严格同名）
+### 推荐定义（保持同名）
 
 ```typescript
-// src/app/source/enums/source-status.enum.ts
+// <module-root>/source/enums/source-status.enum.ts
 import { registerEnumType } from '@nest-boot/graphql';
 
 export enum SourceStatus {
@@ -22,7 +22,6 @@ export enum SourceStatus {
   FAILED = 'FAILED',
 }
 
-// 注意这里：name 属性必须死死地绑定回 'SourceStatus'，也就是变量名本身
 registerEnumType(SourceStatus, {
   name: 'SourceStatus',
 });
@@ -35,7 +34,7 @@ registerEnumType(SourceStatus, {
 - **对 GraphQL 的暴露**：由于我们成功将其 `registerEnumType`，现在可以直接向 `@Field(() => SourceStatus)` 抛掷，客户端生成的 TS 和 Schema 会天然支持并校验这些纯大写常量集。
 - **对底层的映射**：使用 `MikroORM` 带来的 `@Enum` 去映射限制数据库列的行为上限。
 
-### ✅ 实体内的安全双层嵌套绑定
+### 在 Entity 中复用同一枚举
 
 ```typescript
 // source.entity.ts
@@ -43,16 +42,15 @@ registerEnumType(SourceStatus, {
 import { Enum, Opt } from '@mikro-orm/postgresql';
 import { Field } from '@nest-boot/graphql';
 
-// 被上一步完美构造并在内部实施了 registerEnumType 注册后的安全容器
 import { SourceStatus } from './enums/source-status.enum';
 
 // ...
 export class Source {
 
-  // 第一层: GraphQL 的 Schema 类型保证了 HTTP 通讯层面对传入传出参数做出了拦截。
+  // GraphQL schema 暴露允许的枚举值。
   @Field(() => SourceStatus)
 
-  // 第二层: MikroORM 则确保了落库前的值一定锁死为这几个。
+  // MikroORM 将同一枚举映射到数据库列。
   @Enum({ items: () => SourceStatus, default: SourceStatus.WAITING })
 
   status: Opt<SourceStatus> = SourceStatus.WAITING;
@@ -60,4 +58,4 @@ export class Source {
 }
 ```
 
-如此这般，才算真正的用一套枚举模型，完美打通了通讯防腐层与存储抗污层。
+生成 schema 并运行一个包含该字段的真实 operation，确认服务端、客户端 codegen 与数据库值使用同一组字面量。

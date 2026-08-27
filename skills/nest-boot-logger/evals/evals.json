@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-logger",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "给 ProjectService 增加结构化日志，要求后续日志都能按 tenantId 查询，同时不要重复设置类名 context。",
+      "expected_output": "通过依赖注入使用 @nest-boot/logger，依赖自动类名 context，并在活动请求上下文中用 assign 绑定 tenantId。",
+      "files": [],
+      "expectations": [
+        "Logger 从 @nest-boot/logger 导入并通过构造函数注入",
+        "普通 Service 不重复调用 setContext，使用自动推断的类名",
+        "在活动 RequestContext 中用 assign 绑定 tenantId 等安全标识"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Webhook 验签失败时要补日志。当前代码把 Authorization、签名、完整 body 和 error 对象都打印出来，请安全改造。",
+      "expected_output": "移除凭证和原始载荷，只记录事件、资源、供应商与分类后的错误字段，并说明后台入口的 RequestContext 边界。",
+      "files": [],
+      "expectations": [
+        "不记录 Authorization、Cookie、API key、签名或完整 webhook body",
+        "不直接展开可能包含请求配置或 header 的 error 对象",
+        "记录 eventId、resourceId、provider 和 failureKind 等可审计安全字段"
+      ]
+    }
+  ]
+}

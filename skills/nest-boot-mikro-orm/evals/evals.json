@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-mikro-orm",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "今天生成订阅表迁移，但套餐 9 月 1 日才生效；迁移和 Seeder 怎么做？",
+      "expected_output": "由 MikroORM 在可抛弃 PostgreSQL 中生成当前时间迁移，并用幂等 Seeder/effectiveFrom 表达未来生效。",
+      "files": [],
+      "expectations": [
+        "先识别宿主应用的迁移脚本，并由 MikroORM metadata diff 生成迁移而非手写",
+        "迁移时间戳是生成时间，业务生效日位于 Seeder 数据",
+        "执行 up/check/down/up 及重复 Seeder 的幂等性验证"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "设计可同时支持 ProviderAlpha 和 ProviderBeta 的外部服务目录与实例表，外部 ID 怎么放？",
+      "expected_output": "使用供应商枚举和供应商中立的目录/实例边界，区分 providerCatalogItemId 与 providerInstanceId。",
+      "files": [],
+      "expectations": [
+        "ProviderKind 使用独立 enum 并由 @Enum 映射",
+        "providerCatalogItemId 位于目录映射，providerInstanceId 位于业务实例",
+        "同一能力在不同供应商下使用独立 provider binding 或目录记录"
+      ]
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 # MikroORM 向量数据 (pgvector) 操作规范
 
-在需要针对大语言模型 (LLM) 进行检索增强生成 (RAG) 或是构建语义索引的各类实体中（诸如 `SourceChunk`），我们会大量用到 PostgreSQL 的原生向量支持库 `pgvector`。
+在需要为检索增强生成 (RAG) 或语义搜索构建索引的实体中，可以使用 PostgreSQL 的 `pgvector` 扩展。
 
-为了在 `@nest-boot/mikro-orm` 底座上完美整合这一扩展并确保查询性能不塌陷，请严格按照以下规范对实体 (Entity) 模型中的向量属性进行雕琢。
+在 `@nest-boot/mikro-orm` 中使用向量字段时，先固定模型维度与距离度量，再根据数据规模和查询计划决定索引。
 
 ## 1. 字段类型声明与维度约束
 
-传统的 `number[]` 类型无法正确在数据库中映射为受到约束的连续数值阵列。必须利用来自于我们专用包 `@nest-boot/mikro-orm` 中的 `VectorType` 实例，并在初始化阶段为其**强行注入维度尺寸**。
+TypeScript 的 `number[]` 本身不会提供 PostgreSQL vector 列类型。使用 `@nest-boot/mikro-orm` 的 `VectorType`，并传入与 embedding 模型输出一致的维度。
 
 ### ✅ 规范范例：1536维度的声明
 
@@ -18,7 +18,7 @@ import { Property } from '@mikro-orm/postgresql';
 import { VectorType } from '@nest-boot/mikro-orm';
 
 export class SourceChunk {
-  // 重点2：传入确切的维度（如 OpenAI text-embedding-ada-002 的标准 1536 维）
+  // 重点2：传入与所选 embedding 模型输出一致的确切维度
   @Property({ type: new VectorType(1536), nullable: true })
   embedding?: number[];
 }
@@ -26,7 +26,7 @@ export class SourceChunk {
 
 ## 2. 向量近似最近邻索引 (HNSW)
 
-原生的普通 B-Tree 等老式倒排树索引对于向量而言毫无用处。如果不特地增加向量级的高级索引，随着 Chunk 的增多查询效率将会崩塌。我们需要借助 MikroORM 的 `@Index` 暴露的原生回调能力，手写 `hnsw` 索引：
+B-Tree 不能加速向量距离查询。数据量和延迟目标需要近似最近邻索引时，可通过 MikroORM `@Index` expression 创建 HNSW；小表或要求精确搜索时，先基准测试再决定。
 
 ### ✅ 规范范例：动态索引建构注入
 
@@ -51,15 +51,15 @@ export class SourceChunk {
 ```
 
 **⚠️ 索引参数解读：**
-- `using hnsw`：强制声明使用基于图的近似最近邻搜索索引架构（相较于 `ivfflat` 无需事先用足够的数据量 `fit`，即用即建，召回率表现卓然）。
-- `vector_cosine_ops`：明确声明针对“余弦相似度”（Cosine Similarity）去预编排图距。如果你在查询应用端使用的是其他的比对基准（如 `L2 距离 / 欧式操作 (vector_l2_ops)`），这里的操作符名必须更换对齐！
+- `using hnsw`：使用基于图的近似最近邻索引；它会增加构建时间、写入成本与存储占用。
+- `vector_cosine_ops`：对应余弦距离。查询使用 L2、inner product 等其他度量时，索引 operator class 与查询运算符必须一致，否则索引可能无法使用或语义不一致。
 
 ## 3. 防污关联提醒
 
-**极其重要！**：就像《[MikroORM 迁移指南](migration.md)》的第四节所言，当你初次在一个数据库或者新建表内使用该类型声明时，请务必在运行 `pnpm run migration:up` 之前，去人工编辑生成的迁移脚本并手动于上方执行：
+当数据库首次使用该类型时，审查生成迁移是否已经启用扩展。若生成器未覆盖此行为，在执行宿主应用的 `migration:up` 前对生成迁移做最小补充：
 
 ```typescript
     this.addSql(`create extension if not exists vector;`);
 ```
 
-一旦遗漏，后续所有牵扯到该实体的 `VectorType` 建表语句均会当场报错。
+如果目标数据库尚未启用扩展，vector 列和索引迁移会失败。应在 disposable PostgreSQL 上执行迁移并检查扩展、列维度和查询计划。

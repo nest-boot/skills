@@ -4,7 +4,7 @@
 
 ## 使用 IdOrEntity
 
-在编写用于操作关联关系的专门方法时，参数必须使用 `IdOrEntity<T>` 以兼容接收实体的完整对象或它的主键 `id`，这不仅为接口赋予了极大灵活性，也方便上层 Resolver 直传参数：
+当关联方法需要同时接受主键与已加载实体时，使用 `IdOrEntity<T>`；如果边界只允许主键，保留 ID 类型更容易验证权限与来源：
 
 ```typescript
 import { IdOrEntity } from '@nest-boot/mikro-orm';
@@ -25,9 +25,9 @@ async addSource(
 
 ## `upsert` 处理冲突：添加关联
 
-对于多对多关联表的创建，应当采用 `em.upsert` 方案，并通过配置 `onConflictAction: 'ignore'` 平滑地处理可能遇到的唯一索引冲突。这避免了传统的“先查再建”引发的条件竞争 (Race Condition) 并显著降低了连接开销。
+对于要求幂等添加的显式关系实体，可以使用 `em.upsert` 和 `onConflictAction: 'ignore'` 处理唯一键冲突。这避免“先查再建”的竞态。
 
-> **前置条件**：该中间层 Entity 必须拥有 `@Unique` 装饰器标识唯一键，例如 `@Unique({ properties: ['notebook', 'source'] })`
+> **前置条件**：数据库必须存在与 `onConflictFields` 对应的唯一约束，例如 `@Unique({ properties: ['notebook', 'source'] })`。
 
 ```typescript
 async addSource(
@@ -54,7 +54,7 @@ async addSource(
 
 ## `nativeDelete`：移除关联
 
-与常规的 `remove` 加载完整对象后再删除不同，直接通过 `em.nativeDelete` 在大多数场景下更加极致精简、防止产生无意义的 SELECT 操作：
+不需要加载关系实体或触发其 ORM 生命周期 hooks 时，可以用 `em.nativeDelete` 直接按条件删除：
 
 ```typescript
 async removeSource(
@@ -66,7 +66,7 @@ async removeSource(
     this.em.findOneOrFail(Source, sourceIdOrEntity),
   ]);
 
-  // 直接执行原生删除语句、不会触发级联钩子，极其高效
+  // 不触发关系实体的 ORM hooks；数据库 FK 的 cascade/restrict 仍然生效。
   await this.em.nativeDelete(NotebookSource, {
     notebook,
     source,
@@ -78,7 +78,7 @@ async removeSource(
 
 ## 清理孤儿实体（Orphan Cleanup）
 
-在解绑多对多关系后，如果发现目标载体是一个孤儿（没有任何关联对象），需要用极短的代码补全生命周期的兜底销毁，可以通过 `count` 快速排查：
+只有领域所有权明确规定“失去最后一个关联即可删除”时才清理孤儿实体。把解绑、计数和删除放进同一事务，并在并发添加关系的场景使用合适的锁或数据库约束：
 
 ```typescript
 // 紧接上面的 removeSource 逻辑
@@ -90,3 +90,5 @@ if (remaining === 0) {
   await this.em.remove(source).flush();
 }
 ```
+
+若 Source 可被其他领域引用或需要审计保留，不要仅凭当前关系表计数自动删除。

@@ -1,12 +1,12 @@
-# `nest-boot-mikro-orm` 之 EntityService 设计准则
+# EntityService 使用与扩展边界
 
-在 NestJS 项目体系内当需要部署使用 `@nest-boot/mikro-orm` 架构时，一切围绕单一目标实体开发的业务服务类都请默认继承至 `EntityService<T>` 基类。该基类直接提供了一套威能强劲的底层数据访问集成库方案，旨在彻底剔除我们编写套路般重复增删改查 (CRUD) 冗余块所需的全部努力。
+`EntityService<T>` 提供带 DataLoader 的常用实体操作。以单一实体为中心、且宿主模块已经完成 EntityManager 注入的 Service，可以继承它来复用一致的数据访问行为。
 
-## 大前提铁律: 杜绝编写毫无意义的包装器 (Wrappers)
+## 避免无语义包装
 
-**不要**在你亲手捏造的 Service 主体类里，创建那些仅仅只是去呼叫、传递给 `EntityService` 早已开箱即用提供的操作方法的自定义包裹函数。
+不要创建只转发参数、没有权限校验、事务、领域规则或返回值转换的包装方法。
 
-### 坏代码示范 (极差的反向案例)
+### 不推荐：重复实现 create
 
 ```typescript
 @Injectable()
@@ -15,7 +15,7 @@ export class SourceChunkService extends EntityService<SourceChunk> {
     super(SourceChunk, em);
   }
 
-  // 极为差劲: 毫无存在意义的壳子方法！下述所需的所有实体处理其实 `EntityService.create` 都能做且做得更好。
+  // 仅重复 EntityService.create 的行为，没有增加领域语义。
   async createSourceChunk(
     source: Source,
     input: { index: number; content: string; embedding: number[] },
@@ -31,9 +31,9 @@ export class SourceChunkService extends EntityService<SourceChunk> {
 }
 ```
 
-### 优秀代码示范 (巧妙应用 EntityService 带来的赋能)
+### 推荐：复用继承方法
 
-正确的做法其实是，无论你在 Controller 还是 Resolver 下直接去利用本就已经具备完善范型的底层方法 `.create()` 就好，此做法不仅免去了多余文件开销也极大化避免了不必要的心智折损：
+通过领域 Service 调用继承的 `.create()`，让类型和持久化行为保持一致：
 
 ```typescript
 // Controller, Resolver, 或者 Workflow 系统执行的节点:
@@ -45,36 +45,40 @@ const chunk = await this.sourceChunkService.create({
 });
 ```
 
-## 直接可用的强悍内置操作集
+## 内置操作
 
-得益于 `EntityService<T>` 的深度整合，我们可以放任使用下面这一系列绝对类型安全的内置函数方法阵列：
+当前 `EntityService<T>` 提供：
 
-- **`create(data: RequiredEntityData<T>): Promise<T>`**: 初始化、实例化并即时持久封存在库里的插入动作集成体。
-- **`findOne(idOrEntityOrWhere): Promise<Loaded<T> | null>`**: 请求获取单独记录，并静默豁免因无法查获实体进而抛出任意报错的干扰。
-- **`findOneOrFail(idOrEntityOrWhere): Promise<Loaded<T>>`**: 若目标未能找到即当场进行强约束型中断并掷出未寻找到的 404 (Not Found) 终端信号的可靠抓取法。
-- **`findAll(where, options): Promise<Loaded<T>[]>`**: 支持搭配条件映射联合提取大批查询结果集的多重过滤器结构方法。
-- **`update(idOrEntity, data): Promise<T>`**: 通过直达标识(ID)亦或者内存加载的对象即刻发起向源端修改赋值的刷新命令。
-- **`remove(idOrEntity, softDelete?): Promise<T>`**: 发出极具宽容性的安全软硬删除指令清消对象。
-- **`count(where, options): Promise<number>`**: 专门规避过度下载沉重的内存对象模型并单独计算列项数量极速求总合的函数。
-- **`chunkById(where, options, callback): Promise<this>`**: 用于应对大批量且严酷数据堆中基于分布式或者批处理分片进行按 ID 步进流式游标执行处理的神奇手段，可极力压低下标显存使用。
+- **`create(data)`**：创建、持久化并 flush 一个实体。
+- **`findOne(idOrEntityOrWhere)`**：按 ID、实体或过滤条件查询；未找到时返回 `null`。
+- **`findOneOrFail(idOrEntityOrWhere)`**：未找到时抛出 NestJS `NotFoundException`。
+- **`findAll(where, options)`**：按 MikroORM `FindOptions` 查询多个实体。
+- **`update(idOrEntity, data, options?)`**：过滤 `undefined` 字段后 assign 并 flush。
+- **`remove(idOrEntity, softDelete?)`**：默认尝试软删除；实体没有配置的软删除字段时执行硬删除。
+- **`count(where, options?)`**：直接计数，不加载完整实体。
+- **`chunkById(where, options, callback)`**：按 ID 升序分块处理；显式设置 `options.limit` 作为块大小。
 
-## 什么时候才轮到自行订制扩大的自研方法？
+修改框架版本后应重新对照 `EntityService` 源码或类型声明，不要让此方法清单成为过时副本。
 
-除非业务范畴涉及之下情况的边缘场景，否则请再三审视是否真的有自定义挂载查询的必要：
-1. **需牵引横跨多个域表的强一致性分布式锁事物** (比如运用上了严格排查隔离度序列化的更新流处理)。
-2. **极度特异化的图谱和分组求总逻辑** (Aggregations and grouped statements)，单纯依靠通用 `findAll` 已经完全无法轻松解析组装出结构。
-3. **关联关系的定制处理** 比如多对多关系的维护、中间表的写库封装等。
-4. **牵连到了极为复杂的重度外部业务侧** 比如在写库期间要伴随发出远程外部 API 网络信号且要求即时失效某些周边缓存机制的处理。
+## 何时增加自定义方法
 
-### 自定义方法的参数规范：全面使用 `IdOrEntity<T>`
+以下情况通常具有独立领域语义：
 
-当你确认必须编写自定义的 Service 方法时，请**务必将接受实体的参数声明为 `IdOrEntity<T>`**，而非单一的 `T`（全量实体对象）或 `string`/`number`（仅 ID）。
+1. 跨实体事务、锁或一致性边界；
+2. 聚合、分组或不能由通用 `findAll` 清晰表达的查询；
+3. 多对多关系和显式中间实体的维护；
+4. 权限校验、状态机、缓存失效或外部系统协调；
+5. 需要稳定封装 populate、过滤条件或返回 DTO 的读取路径。
 
-**这是由于所有继承至 `EntityService` 的底层方法（`findOneOrFail`、`update` 等），天生完美兼容 `IdOrEntity<T>` 的联合类型体。**
+### 需要兼容 ID 与实体时使用 `IdOrEntity<T>`
+
+当调用方确实可能持有 ID 或已加载实体时，参数可声明为 `IdOrEntity<T>`。如果业务边界只允许 ID，保留窄类型更清晰，不必为了灵活性扩大 API。
+
+`EntityService.findOneOrFail`、`update` 和 `remove` 原生接受 `IdOrEntity<T>`。直接调用 MikroORM `EntityManager` 时，应以其实际方法签名为准，不要假定所有 API 都接受同一联合类型。
 
 #### 优势：
-- 高度扩展性：让上层客户端（如 Resolver/Controller/其它 Agent）不用纠结于传递进来的是一个刚提取完毕的完整实体，还是仅仅是一个外键 ID 字符串。
-- 零开销加载：你可以在方法内部统一使用 `this.findOneOrFail(idOrEntity)` 或 `this.em.findOneOrFail(Entity, idOrEntity)` 揽收对象；若传入的本身就是实体缓冲池记录的完整对象，MikroORM 的 Identity Map 机制会直接将其作为脱水载体返还，**绝对不会由此多产生一次无意义的 SQL SELECT 扫描。**
+- 调用方已有受管实体时可以直接传入，只有 ID 时也无需预加载。
+- `EntityService.findOneOrFail` 会先检查当前 UnitOfWork 的 identity map；是否执行 SQL 仍取决于实体是否受管和当前 EntityManager 上下文，不能把它视为无条件零查询。
 
 #### 范例：
 ```typescript
@@ -85,16 +89,14 @@ export class NotebookService extends EntityService<Notebook> {
   // 规范写法：参数兼容 ID 亦或者是 对象
   async doComplexAction(
     notebookIdOrEntity: IdOrEntity<Notebook>,
-    sourceIdOrEntity: IdOrEntity<Source>
+    sourceId: Source['id'],
   ): Promise<void> {
     const [notebook, source] = await Promise.all([
       this.findOneOrFail(notebookIdOrEntity),
-      this.em.findOneOrFail(Source, sourceIdOrEntity),
+      this.em.findOneOrFail(Source, sourceId),
     ]);
 
     // ... 执行强业务逻辑
   }
 }
 ```
-
-最后重申，永远在企图亲手制造某个特定基础逻辑前先行查阅 `EntityService` 原生能够带来哪些福利供给。

@@ -1,14 +1,14 @@
 # MikroORM 实体 (Entity) 架构设计规范
 
-在 `@nest-boot` 的规范体系中使用 `MikroORM` 声明实体时，为了确保类型强控与数据库扩展的安全性，请严格遵守以下实体属性抽象标准。
+使用 MikroORM 声明实体时，让 TypeScript、数据库约束与 GraphQL 契约表达同一领域语义，同时避免为开放集合建立难以演进的 enum。
 
 ## 1. 字段类型准则：强制约束有限集合类型
 
-在遇到存在“有限集范围”的表达性字段时（诸如：`status`, `type`, `role`, `tier` 等），**严禁使用松散的字符串 (`Opt<string>` + `t.string`) 作为属性定义！**
+当 `status`、`type`、`role`、`tier` 等字段具有稳定且封闭的有限集合，并需要进入数据库或 GraphQL 契约时，优先使用独立 Enum。供应商动态 code、用户标签等开放集合继续使用字符串和相应验证。
 
-### ❌ 错误示范：松散字符串表达
+### 不推荐：用字符串表达封闭状态
 
-下面的错误示范将导致服务端与客户端通讯时丢失静态检查能力，同时也无法享受数据库层的常量约束报错：
+下面的写法会让封闭状态失去静态类型，并容易与客户端和数据库约束漂移：
 
 ```typescript
 // source.entity.ts
@@ -21,18 +21,17 @@ import { Field } from '@nest-boot/graphql';
 status: Opt<string> = 'processing';
 ```
 
-### ✅ 规范标准示范：独立枚举化
+### 推荐：独立枚举
 
-必须依照 `nest-boot-best-practices` 所规定的全大写独立 Enum 书写规则，引入独立的 Enum 并用 `@Enum()` 进行装饰：
+沿用 `nest-boot-best-practices` 的枚举约定，并用 `@Enum()` 映射：
 
 ```typescript
-// src/app/source/source.entity.ts
+// <module-root>/source/source.entity.ts
 import { Enum, Opt } from '@mikro-orm/postgresql';
 import { Field } from '@nest-boot/graphql';
 
 import { SourceStatus } from './enums/source-status.enum';
 
-// 正确：安全导入完全独立的类型防腐大写枚举
 @Field(() => SourceStatus)
 @Enum({ items: () => SourceStatus, default: SourceStatus.PROCESSING })
 status: Opt<SourceStatus> = SourceStatus.PROCESSING;
@@ -40,5 +39,5 @@ status: Opt<SourceStatus> = SourceStatus.PROCESSING;
 
 ## 2. 其它类型准则与索引
 
-1. **唯一性标识符**：如果你使用 `t.bigint` 等复杂标识符搭配全局算法（如 `Sonyflake`），确保声明类型时使用统一包装 `Opt<string>` 以向下兼容前端的 53bit Integer 限制。
-2. **状态机索引**：像 `status` 或 `type` 这类经常被用于 Where 过滤的数据标尺，请务必在 `@Entity()` 修饰的顶部加上相应的索引支持：`@Index({ properties: ['status'] })`。
+1. **标识符序列化**：数据库使用 bigint，而 GraphQL/JSON 客户端不能安全表示 64 位整数时，沿用宿主应用的 string 序列化约定；不要在同一系统混用 number 与 string ID。
+2. **按查询设计索引**：只有真实查询会按 `status`/`type` 过滤，且选择性、排序或组合条件能受益时才添加索引。低基数字段的单列索引不一定有效，应结合查询计划选择单列、组合或部分索引。

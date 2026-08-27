@@ -1,21 +1,23 @@
 ---
 name: nest-boot-best-practices
-description: 在当前项目中使用 `@nest-boot` 框架构建 NestJS 应用时的常规代码组织与架构规范。当您生成、修改、重构 Entity（实体）、Resolver 或者是 DTO 时，请触发并使用本技能以确保代码拆分、目录层级以及针对类型（如 Enum 枚举）的提取等行为，皆充分符合当前工程的标准规范。
+description: 使用 `@nest-boot` 构建或重构 NestJS 业务模块时的通用组织与命名规范。适用于新增领域，调整 Entity、Service、Resolver、DTO 或 Enum，重命名实体、表或模块，以及检查服务端、客户端与数据库之间的跨层一致性。
 ---
 
 ## 概述
 
-在当前项目内的任何 NestJS 模块下开发功能时，必须严格遵守目录布局准则与文件关注点分离原则，以确保代码库能够在长期维护中具备良好的扩展性。
+在使用 `@nest-boot` 的 NestJS 应用中开发业务模块时，应遵守宿主代码库已有的目录布局，并保持文件关注点分离。不要假定固定的 monorepo 包名或源码根目录；先从现有模块、配置和构建脚本识别约定，再在同一边界内扩展。
 
-**在执行任何结构调整或新建任务前，请务必阅读并对照下方参考文档，以确保所做修改符合项目规范。**
+执行结构调整或新建模块前，按任务涉及的内容阅读下方参考文档。
 
 ## 核心概念
 
-- **文件分离 (File Separation)**：禁止将多重职能或内嵌类型（比如枚举 Enums）全部糅杂堆积在单一的 Entity 或 Resolver 文件内。
-- **独占目录 (Dedicated Folders)**：需将特定的辅助类型、输入对象（inputs）和枚举定义，归类放置于具备极强预测性的独立二级目录中 (例如：`enums/`，`inputs/`)。
+- **文件分离 (File Separation)**：让 Entity、Resolver、Service 与可复用类型各自承担单一职责，避免一个文件同时承载多层逻辑。
+- **可预测目录 (Predictable Folders)**：沿用宿主模块的 `enums/`、`inputs/`、`types/` 等目录；只有单个局部辅助类型时，不必为了形式额外制造层级。
+- **领域命名闭环 (Domain Naming Closure)**：一次领域重命名必须同时覆盖目录、文件、类、依赖注入变量、GraphQL 类型/字段、ORM 关系、数据库表/列、测试和文档；不要只改 Entity 名称。
 
 ## 参考文档
 
-- [项目结构规范](references/project-structure.md) - 该指南提供了针对模块化组织的详尽结构图，并明确规定 Typescript 文件的位置限制原则。
-- [枚举 (Enum) 安全与格式规范](references/enums.md) - 详解在系统中创建独立 Enum 时，为何及如何严格贯彻键值全大写的铁律。
+- [模块结构规范](references/project-structure.md) - 说明如何从宿主应用识别模块根目录，并在不硬编码仓库布局的前提下组织文件。
+- [枚举 (Enum) 安全与格式规范](references/enums.md) - 说明枚举的文件位置、命名与键值约定。
 - [纯接口 (Interfaces/Types) 架构规范](references/interfaces.md) - 详解如何安全地存放和区分系统内的纯净底层泛型与数据类型（例如 `export interface XXX`）。
+- [领域重命名与迁移检查表](references/renames.md) - 用于实体、模块或表重命名，防止服务端、客户端、迁移、关系字段和文档残留旧语义。
