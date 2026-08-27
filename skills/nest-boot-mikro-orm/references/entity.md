@@ -23,7 +23,7 @@ status: Opt<string> = 'processing';
 
 ### 推荐：独立枚举
 
-沿用 `nest-boot-best-practices` 的枚举约定，并用 `@Enum()` 映射：
+沿用 `nest-boot-module-design` 的枚举约定，并用 `@Enum()` 映射：
 
 ```typescript
 // <module-root>/source/source.entity.ts

@@ -17,7 +17,7 @@ npx skills add https://github.com/nest-boot/skills \
 
 ```sh
 npx skills add https://github.com/nest-boot/skills \
-  --skill nest-boot-best-practices \
+  --skill nest-boot-module-design \
   --agent universal \
   --copy \
   -y
@@ -28,12 +28,13 @@ npx skills add https://github.com/nest-boot/skills \
 <!-- BEGIN GENERATED SKILLS -->
 | Skill | 描述 |
 | --- | --- |
-| [nest-boot-best-practices](skills/nest-boot-best-practices/) | 使用 `@nest-boot` 构建或重构 NestJS 业务模块时的通用组织与命名规范。适用于新增领域，调整 Entity、Service、Resolver、DTO 或 Enum，重命名实体、表或模块，以及检查服务端、客户端与数据库之间的跨层一致性。 |
 | [nest-boot-bullmq](skills/nest-boot-bullmq/) | 使用 `@nest-boot/bullmq` 构建和管理 NestJS 异步任务队列的通用规范。适用于创建队列、定义 Job payload、注册 Processor、投递任务或排查队列依赖注入，重点保证名称与载荷类型安全、注册关系一致和处理器职责清晰。 |
+| [nest-boot-domain-renaming](skills/nest-boot-domain-renaming/) | 在 NestJS 与 `@nest-boot` 应用中执行跨层领域、实体、模块或持久化概念重命名的完整工作流。适用于同步修改目录、文件、TypeScript 符号、依赖注入、GraphQL schema/operation、MikroORM 实体与表列、迁移、RLS policy、队列、客户端、测试和文档，并区分本地概念、通用术语、外部协议与存量数据；普通文件组织使用 `nest-boot-module-design`。 |
 | [nest-boot-graphql](skills/nest-boot-graphql/) | 使用 `@nest-boot/graphql` 编写、暴露、重命名、审查或排查 GraphQL Schema、Resolver、ResolveField、Input、Args、Connection 及客户端 operation 的通用规范。适用于 schema 类型冲突、关联字段缺失、代码通过编译但真实 GraphQL 查询失败或跨层名称需要同步的场景。 |
 | [nest-boot-logger](skills/nest-boot-logger/) | 使用 `@nest-boot/logger` 在 NestJS 可注入类中记录结构化日志的通用规范。适用于添加日志、调试结构化追踪、配置 LoggerModule 或排查日志上下文，重点覆盖依赖注入、上下文绑定、日志级别与敏感数据保护。 |
 | [nest-boot-maintainer](skills/nest-boot-maintainer/) | 诊断使用 `@nest-boot/*` 时发现的可复现框架缺陷或通用改进建议，并为 `nest-boot/nest-boot` 准备或提交 GitHub Issue、修复分支和 PR。适用于运行时异常、类型或公开 API 不一致、错误生成结果、回归、跨包设计改进以及官方文档与实现不符；若问题只属于 `nest-boot/skills` 指引、业务项目约定或上游依赖，应改由相应仓库处理。 |
 | [nest-boot-mikro-orm](skills/nest-boot-mikro-orm/) | 使用 `@nest-boot/mikro-orm` 构建 NestJS 持久化层的通用规范，覆盖 Entity、EntityService、关系、迁移、Seeder、外部供应商中立建模、锁与数据库验证。适用于新增或重构持久化功能，修改表、列、枚举、外键或索引，重命名实体，生成或审查迁移，以及排查 schema drift。 |
+| [nest-boot-module-design](skills/nest-boot-module-design/) | 使用 NestJS 与 `@nest-boot` 新增、拆分或重构业务模块时的目录、边界、文件和类型组织规范。适用于创建新领域，安排 Entity、Service、Resolver、Controller、DTO/Input、interface/type 或 enum，拆分职责混杂的大文件，判断公共基础设施与业务代码的位置，以及沿用宿主项目的模块根目录和命名约定；领域整体改名应使用 `nest-boot-domain-renaming`。 |
 | [nest-boot-row-level-security](skills/nest-boot-row-level-security/) | 使用 `@nest-boot/row-level-security` 新增、重构、审查或排查实体 Policy、RowLevelSecurity 上下文、`RequestContext.child` 局部 RLS 绕过、MikroORM 迁移或 PostgreSQL RLS 行为的通用规范。 |
 | [nest-boot-skill-maintainer](skills/nest-boot-skill-maintainer/) | 将 Nest Boot 项目开发中发现的可复用指引缺口转化为 `nest-boot/skills` 的 skill 改进、eval、GitHub issue 或 PR。适用于用户要求总结开发经验、修订 nest-boot skill、报告过时或错误指引以及维护 skills 仓库；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或尚未验证的猜测不应进入上游 skill。 |
 | [nest-boot-streaming](skills/nest-boot-streaming/) | 在 NestJS 与 `@nest-boot` 应用中设计、实现、重构和测试内存有界的 Node.js Stream 与 Web Streams 数据路径。适用于新增上传、下载、代理、对象存储、multipart、外部 HTTP 请求/响应、媒体处理或子进程集成，以及编写 `Readable`、`pipeline`、`createReadStream`、Multer/Busboy、流式重试、超时、取消、字节上限和 OOM 回归；也用于排查或审查伪流式整体缓冲、背压失效、未消费响应、跨重试复用 stream 和并发放大。 |

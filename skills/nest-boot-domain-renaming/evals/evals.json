@@ -1,0 +1,41 @@
+{
+  "skill_name": "nest-boot-domain-renaming",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把内部 Subscription 全面改名为 TenantSubscription，包括表、文件、模块和客户端查询，但支付供应商协议仍要求 subscription_id。",
+      "expected_output": "先定义领域与外部协议边界，再完成服务端、GraphQL、MikroORM、客户端和测试的命名闭环，只在供应商 adapter 保留 subscription_id 映射。",
+      "files": [],
+      "expectations": [
+        "建立 Subscription/TenantSubscription 的 rename map，并保留 SubscriptionPlan 等合法通用术语",
+        "目录、文件、类、DI、GraphQL 类型/operation、表和客户端使用新领域名称",
+        "供应商 subscription_id 只在协议边界保留并有显式映射测试",
+        "全仓搜索不同大小写与命名风格，逐条分类旧名称残留"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "把一个已有生产数据、GraphQL API 和 PostgreSQL RLS 的 Source 领域改名为 Document。请实现迁移并说明验证。",
+      "expected_output": "从 Entity/装饰器和 schema 源开始改名，生成保留数据的数据库与 policy 迁移，并通过 GraphQL operation、migration 往返和 RLS 探针验收。",
+      "files": [],
+      "expectations": [
+        "不以 drop/create 代替有数据表的 rename 或明确数据搬迁",
+        "GraphQL schema 与客户端 documents/types 同步，并执行真实 operation",
+        "RLS policy metadata、policy 名、上下文字段和 migration up/down 同步",
+        "disposable PostgreSQL 完成 up-check-down-up，并验证正确、错误和空上下文"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "领域字段 provider 改名为 inferenceProvider，同时数据库列、BullMQ Job、缓存 key 和文档也要调整；队列里可能还有旧 Job，旧 API 需要保留一个版本。",
+      "expected_output": "制定包含兼容窗口的跨层 rename 计划，更新源定义和派生工件，处理旧队列消息、数据库迁移与 API alias，并明确移除旧名称的终点。",
+      "files": [],
+      "expectations": [
+        "影响清单覆盖 TypeScript、数据库、队列 producer/consumer、缓存、API 和文档",
+        "旧 Job 通过 drain、兼容 consumer 或迁移策略处理，不只改 producer",
+        "公开 API alias 有 deprecated/version 边界，不让两套内部概念无限共存",
+        "迁移和部署顺序支持新旧版本短暂并存，并有回滚验证"
+      ]
+    }
+  ]
+}
