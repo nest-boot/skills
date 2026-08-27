@@ -1,0 +1,68 @@
+name: Skill bug or outdated guidance
+description: Report guidance that is incorrect, unsafe, stale, or consistently misapplied.
+title: "[Skill]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve Nest Boot skills. Remove all credentials, customer data, private URLs, and production logs before submitting.
+  - type: input
+    id: skill
+    attributes:
+      label: Affected skill
+      description: Name the skill and installed revision or source when known.
+      placeholder: nest-boot-graphql
+    validations:
+      required: true
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: Problem type
+      options:
+        - Incorrect guidance or example
+        - Missing decision or edge case
+        - Outdated framework/API information
+        - Triggering problem
+        - Unsafe or sensitive-data behavior
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Sanitized reproduction
+      description: Show the user request, relevant project context, and the agent behavior with the smallest public example.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Explain what the skill should make the agent decide or produce.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link framework source, tests, official documentation, schemas, or repeatable probes supporting the correction.
+    validations:
+      required: true
+  - type: textarea
+    id: generalization
+    attributes:
+      label: Why this belongs upstream
+      description: Explain why the problem can affect more than one project or caller.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched open and closed Issues and PRs for duplicates.
+          required: true
+        - label: I verified this is a skill problem rather than a nest-boot framework bug or project-specific convention.
+          required: true
+        - label: I removed secrets, customer data, private URLs, and production logs.
+          required: true

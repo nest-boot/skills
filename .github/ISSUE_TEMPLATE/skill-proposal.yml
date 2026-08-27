@@ -1,0 +1,55 @@
+name: New skill or reusable improvement
+description: Propose a new Nest Boot skill or a broadly reusable capability for an existing skill.
+title: "[Proposal]: "
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Proposed or affected skill
+      placeholder: nest-boot-example
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Repeated development problem
+      description: Describe the real task, failure, or repeated work the skill should address.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example prompts
+      description: Provide at least two realistic prompts that should trigger the behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: guidance
+    attributes:
+      label: Proposed reusable guidance or resources
+      description: Identify non-obvious rules, references, scripts, or assets that would materially help an agent.
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope and boundaries
+      description: State what should remain project-specific or be handled by nest-boot/nest-boot instead.
+    validations:
+      required: true
+  - type: textarea
+    id: evaluation
+    attributes:
+      label: Evaluation approach
+      description: Explain how maintainers can tell that the skill improves decisions or outputs.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing skills, Issues, and PRs for equivalent guidance.
+          required: true
+        - label: The proposal applies across projects and is not an organization-specific convention.
+          required: true
