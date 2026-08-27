@@ -11,13 +11,13 @@
 | Sink | 写盘、网络、SDK 或客户端断开时，错误能否反向停止 source？ |
 | Retry | 每次是否创建新 source？失败 attempt 是否已销毁或取消？ |
 | Limits | header 预检与实际字节计数是否都存在？deadline 是否覆盖读完整个 body？ |
-| Concurrency | 单操作缓冲乘以 HTTP、队列和 SDK 并发后是否仍低于容器预算？ |
+| Concurrency | 单操作缓冲乘以 HTTP、队列和 SDK 并发后是否仍低于进程预算？ |
 | Ownership | 谁等待完成、谁取消、谁清理部分文件或临时目录？是否只有一个所有者？ |
 
 实现完成后再沿同一张表验证端到端有界。以下写法只是“参数叫 stream”，不能单独证明安全：
 
 - SDK 方法接收 `Readable`，但内部为了签名、重试或 multipart 上传缓存整个对象；
-- 代理先 `await request.arrayBuffer()`，再构造一个新的 response stream；
+- 框架代理先 `await request.arrayBuffer()`，再构造一个新的 response stream；
 - 上游上传是流式的，但成功响应直接 `response.json()` 且没有响应上限；
 - `for await` 读取文件后把所有 chunk 放入数组，最后 `Buffer.concat()`；
 - 每个任务只缓冲 20 MiB，但 worker concurrency 为 20。
@@ -84,15 +84,27 @@ async function writeWithinLimit(
 - 上传失败或请求取消时，把 abort 传播给 SDK 和输入 stream；
 - 不要仅凭类型签名或 mock 中保留了同一个 `Readable` 就断言端到端流式。
 
-框架代理同样应核对当前实现是否直接转发 request/response body，并用慢速大文件集成测试确认；不要用猜测替换已有的流式代理。
+## 5. 框架适配
 
-## 5. 子进程输出
+Express、Fastify、NestJS 或其他框架只负责暴露 source/sink，不会自动提供端到端内存上限。应检查当前适配器和插件版本：
+
+- request body、multipart parser 和 response 是否直接传递 stream；
+- 客户端断开是否会 abort pipeline、上游 fetch 和对象存储操作；
+- parser 的 field/file limits 是否只是 header 限制，实际字节是否仍会计数；
+- middleware、interceptor 或序列化器是否会在流前后整体缓冲；
+- handler 是否等待 pipeline 完成，而不是启动后台消费后提前结束请求上下文。
+
+需要临时文件时，由一次请求或任务拥有目录并等待全部消费者结束后清理。在 Nest Boot 中使用 `@nest-boot/temporary-directory` 时，目录必须在活动 `RequestContext` 中分配，流式工作也必须在上下文结束前完成。
+
+代理应核对当前实现是否直接转发 request/response body，并用慢速大文件集成测试确认；不要用猜测替换已有的流式代理。
+
+## 6. 子进程输出
 
 子进程 pipe 有自己的背压，但应用把每个 `data` chunk 拼接到字符串或数组后仍会无限增长。若 stderr 只用于生成公开错误，优先 `stdio: ['ignore', 'pipe', 'ignore']` 并返回固定、脱敏的错误。需要诊断输出时使用环形/截断缓冲，仅保留固定字节数。
 
 stdout 预期很小时应设置与协议相符的上限；达到上限或 deadline 时 kill 子进程，并防止 `error`、`close`、timeout 多次 settle 同一个 Promise。
 
-## 6. 回归测试
+## 7. 回归测试
 
 至少覆盖与改动相关的场景：
 

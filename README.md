@@ -1,6 +1,6 @@
 # nest-boot/skills
 
-Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态下的工程规范、框架集成和最佳实践。
+Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态及其依赖的通用 Node.js 工程规范、框架集成和最佳实践。
 
 ## 使用
 
@@ -37,8 +37,8 @@ npx skills add https://github.com/nest-boot/skills \
 | [nest-boot-module-design](skills/nest-boot-module-design/) | 使用 NestJS 与 `@nest-boot` 新增、拆分或重构业务模块时的目录、边界、文件和类型组织规范。适用于创建新领域，安排 Entity、Service、Resolver、Controller、DTO/Input、interface/type 或 enum，拆分职责混杂的大文件，判断公共基础设施与业务代码的位置，以及沿用宿主项目的模块根目录和命名约定；领域整体改名应使用 `nest-boot-domain-renaming`。 |
 | [nest-boot-row-level-security](skills/nest-boot-row-level-security/) | 使用 `@nest-boot/row-level-security` 新增、重构、审查或排查实体 Policy、RowLevelSecurity 上下文、`RequestContext.child` 局部 RLS 绕过、MikroORM 迁移或 PostgreSQL RLS 行为的通用规范。 |
 | [nest-boot-skill-maintainer](skills/nest-boot-skill-maintainer/) | 将 Nest Boot 项目开发中发现的可复用指引缺口转化为 `nest-boot/skills` 的 skill 改进、eval、GitHub issue 或 PR。适用于用户要求总结开发经验、修订 nest-boot skill、报告过时或错误指引以及维护 skills 仓库；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或尚未验证的猜测不应进入上游 skill。 |
-| [nest-boot-streaming](skills/nest-boot-streaming/) | 在 NestJS 与 `@nest-boot` 应用中设计、实现、重构和测试内存有界的 Node.js Stream 与 Web Streams 数据路径。适用于新增上传、下载、代理、对象存储、multipart、外部 HTTP 请求/响应、媒体处理或子进程集成，以及编写 `Readable`、`pipeline`、`createReadStream`、Multer/Busboy、流式重试、超时、取消、字节上限和 OOM 回归；也用于排查或审查伪流式整体缓冲、背压失效、未消费响应、跨重试复用 stream 和并发放大。 |
 | [nest-boot-temporary-directory](skills/nest-boot-temporary-directory/) | 使用 `@nest-boot/temporary-directory` 在 NestJS HTTP、GraphQL、队列或其他 `RequestContext` 工作单元中创建并自动清理临时目录。适用于模块注册、临时文件生命周期、Multer/流式上传、后台任务、命名空间、上下文丢失或清理测试；重点保证目录只在活动上下文中分配、异步消费者不会越过上下文边界、清理所有权保持单一。 |
+| [nodejs-streaming](skills/nodejs-streaming/) | 在 Node.js 服务、CLI 与 worker 中设计、实现、重构和测试内存有界的 Node.js Stream 与 Web Streams 数据路径。适用于上传、下载、代理、对象存储、multipart、fetch 请求/响应、媒体处理、压缩解压或子进程集成，以及编写 `Readable`、`Writable`、`Transform`、`pipeline`、`createReadStream`、背压、重试、超时、取消、字节上限、并发预算和 OOM 回归；覆盖 Express、Fastify、NestJS 等框架，也用于排查伪流式整体缓冲、未消费响应、跨重试复用 stream 和并发放大。 |
 <!-- END GENERATED SKILLS -->
 
 ## 贡献与安全

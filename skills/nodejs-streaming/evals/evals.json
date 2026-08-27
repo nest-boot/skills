@@ -1,10 +1,10 @@
 {
-  "skill_name": "nest-boot-streaming",
+  "skill_name": "nodejs-streaming",
   "evals": [
     {
       "id": 1,
-      "prompt": "为 NestJS 新增一个最大 100 MB 的音频转写接口：上传文件需要发给 OpenAI-compatible provider，502 可重试两次，不能把音频整体放进内存。请实现并补测试。",
-      "expected_output": "把上传流式落到请求上下文拥有的临时文件，从磁盘为每次串行 attempt 新建 multipart body，并实现字节限制、完整交换 deadline、取消、清理和内存回归。",
+      "prompt": "为 Node.js HTTP 服务新增一个最大 100 MB 的音频转写接口：上传文件需要发给 OpenAI-compatible provider，502 可重试两次，不能把音频整体放进内存。请实现并补测试。",
+      "expected_output": "把上传流式落到由当前请求拥有的临时文件，从磁盘为每次串行 attempt 新建 multipart body，并实现字节限制、完整交换 deadline、取消、清理和内存回归。",
       "files": [],
       "expectations": [
         "不使用 readFile、Blob、FormData 或 Buffer.concat 把完整音频载入内存",
@@ -15,7 +15,7 @@
     },
     {
       "id": 2,
-      "prompt": "实现一个 NestJS 远程文件下载服务：只允许最多 100 MB 的响应，目标写入临时目录；上游可能不发 Content-Length，磁盘也可能写入失败。",
+      "prompt": "实现一个 Node.js 远程文件下载器：只允许最多 100 MB 的响应，目标写入临时目录；上游可能不发 Content-Length，磁盘也可能写入失败。",
       "expected_output": "先做 header 预检，再用 pipeline 和实际字节计数写盘，在超限、超时或 sink 失败时停止 source，并把部分文件交给明确的生命周期所有者清理。",
       "files": [],
       "expectations": [
@@ -27,7 +27,7 @@
     },
     {
       "id": 3,
-      "prompt": "实现一个 NestJS 外部推理 provider：request body 是 Readable，成功响应为 JSON，错误响应内容不需要返回。响应可能使用 chunked encoding，请保证内存和连接有界。",
+      "prompt": "实现一个 Node.js 外部推理客户端：request body 是 Readable，成功响应为 JSON，错误响应内容不需要返回。响应可能使用 chunked encoding，请保证内存和连接有界。",
       "expected_output": "实现按实际字节有界的 JSON 文本读取、非成功响应取消和覆盖完整交换的 deadline，并根据解析副本和最大并发选择响应上限。",
       "files": [],
       "expectations": [
@@ -39,7 +39,7 @@
     },
     {
       "id": 4,
-      "prompt": "为 NestJS 媒体模块实现一个 spawn 子进程探测器，并在队列中批量处理文件。协议只需要 stdout 的一个短值，stderr 不需要返回。请给出实现和测试。",
+      "prompt": "为 Node.js worker 实现一个 spawn 媒体探测器，并批量处理文件。协议只需要 stdout 的一个短值，stderr 不需要返回。请给出实现和测试。",
       "expected_output": "忽略不需要的 stderr，对 stdout 设置协议级字节上限和进程 deadline，并用受控并发批量处理文件。",
       "files": [],
       "expectations": [
@@ -51,14 +51,26 @@
     },
     {
       "id": 5,
-      "prompt": "代码把 createReadStream 传给 S3 SDK，并用框架 proxy 转发上传，所以同事认为肯定不会 OOM。请给出审查结论和验证方案。",
-      "expected_output": "不凭 Readable 类型下结论，核对当前 SDK 和代理实现，计算 multipart 分片队列乘业务并发的峰值，并用慢速真实流和取消场景验证。",
+      "prompt": "代码把 createReadStream 传给 S3 SDK，并用 Express/Fastify/NestJS 中的框架 proxy 转发上传，所以同事认为肯定不会 OOM。请给出审查结论和验证方案。",
+      "expected_output": "不凭 Readable 类型下结论，核对当前 SDK 和框架适配器实现，计算 multipart 分片队列乘业务并发的峰值，并用慢速真实流和取消场景验证。",
       "files": [],
       "expectations": [
         "检查 SDK 是否缓存、签名或 multipart 分片，已知时传 Content-Length",
         "计算 partSize 乘 queueSize 再乘 request 或 worker concurrency 的总预算",
         "核对代理是否直接转发 request/response body，而不是先 arrayBuffer 或 formData",
         "用慢速大流、客户端断开、sink 失败和内存观测验证，不只断言 mock 收到 Readable"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "在 NestJS 与 @nest-boot 应用中实现大文件上传：使用 Multer，把文件放入 TemporaryDirectoryService 管理的目录，再流式交给异步消费者。请处理动态 interceptor、RequestContext 和清理边界。",
+      "expected_output": "使用 disk storage，在可靠的 RequestContext 边界创建临时目录，通过 NestJS 依赖注入生命周期构造动态 interceptor，并等待所有流式消费者完成后再结束上下文。",
+      "files": [],
+      "expectations": [
+        "大文件使用 disk storage 或等价流式 parser，不使用 memory storage",
+        "临时目录只在活动 RequestContext 中分配，且只有一个清理所有者",
+        "动态 FileInterceptor 需要注入依赖时通过 ModuleRef.create 或等价容器机制构造",
+        "controller、后台消费者和异常路径不会越过上下文边界继续使用已清理文件"
       ]
     }
   ]
