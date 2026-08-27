@@ -8,7 +8,6 @@ Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态下的
 
 ```sh
 npx skills add https://github.com/nest-boot/skills \
-  --all \
   --agent universal \
   --copy \
   -y
