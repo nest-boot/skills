@@ -5,6 +5,7 @@
 | 证据 | 目标 | 默认动作 |
 | --- | --- | --- |
 | Skill 缺少关键判断、示例错误、指引已过时，框架行为本身正确 | `nest-boot/skills` | 证据充分时提交带 eval 的 PR；范围不清时先 issue |
+| 多个 Nest Boot 项目都需要同一框架中立工程能力，且不存在更合适的成熟上游 skill | `nest-boot/skills` | 使用中立名称与触发描述，保留 Nest Boot 集成边界，不伪装成框架专属能力 |
 | `@nest-boot/*` 的公开 API、类型、运行时行为或生成结果与源码意图/文档不一致 | `nest-boot/nest-boot` | 改用 `$nest-boot-maintainer` 提交框架 Issue 或 PR |
 | 上游依赖（NestJS、MikroORM、BullMQ、GraphQL、PostgreSQL 等）的问题 | 对应依赖仓库 | 先确认 Nest Boot 没有适配责任，再按依赖项目流程报告 |
 | 只在某个业务项目的目录、命名、部署或私有封装中成立 | 当前业务项目 | 修复本地代码或项目说明，不修改通用 skill |
@@ -22,6 +23,12 @@
 - 能增加一个 eval，使未来维护者看到该规则防止的具体失败。
 
 以下内容通常留在项目内：业务专有实体名、客户配置、临时迁移状态、未公开 API、单次数据修复，以及只有审美偏好而没有工程影响的格式规则。
+
+## 框架中立能力
+
+能力比 Nest Boot 更通用并不自动意味着它不属于本仓库。若问题由 Nest Boot 项目的重复开发直接验证、需要与现有 Nest Boot skill 协作，并且没有更清晰的上游所有者，可以在本仓库维护；名称、description、主体规则和 eval 应面向真实通用范围，只把 NestJS 或 Nest Boot 放在框架集成章节。
+
+如果已有活跃且可信的通用 skill 拥有相同契约，优先向其贡献或直接安装，避免在本仓库复制并逐渐漂移。若规则其实依赖 `@nest-boot/*` 的公开 API，则仍应使用 `nest-boot-*` 名称并由对应专项 skill 所有。
 
 ## Issue 还是 PR
 
