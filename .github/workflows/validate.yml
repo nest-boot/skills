@@ -1,0 +1,45 @@
+name: Validate skills
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install validation dependencies
+        run: python3 -m pip install PyYAML==6.0.3
+
+      - name: Check generated README and repository rules
+        run: |
+          python3 skills/nest-boot-skill-maintainer/scripts/update_readme.py --repo . --check
+          python3 skills/nest-boot-skill-maintainer/scripts/validate_skills.py --repo .
+
+      - name: Validate every skill
+        run: |
+          for skill_dir in skills/*; do
+            if [ -f "$skill_dir/SKILL.md" ]; then
+              python3 .agents/skills/skill-creator/scripts/quick_validate.py "$skill_dir"
+            fi
+          done
+
+      - name: Check project-installed maintainer
+        run: |
+          test -L .agents/skills/nest-boot-skill-maintainer
+          test "$(readlink .agents/skills/nest-boot-skill-maintainer)" = "../../skills/nest-boot-skill-maintainer"
+          test -f .agents/skills/nest-boot-skill-maintainer/SKILL.md

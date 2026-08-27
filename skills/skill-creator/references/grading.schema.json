@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "evidence": { "type": "string" }
+        },
+        "required": ["text", "passed", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "pass_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["passed", "failed", "total", "pass_rate"],
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim": { "type": "string" },
+          "type": { "type": "string", "enum": ["factual", "process", "quality"] },
+          "verified": { "type": "boolean" },
+          "evidence": { "type": "string" }
+        },
+        "required": ["claim", "type", "verified", "evidence"],
+        "additionalProperties": false
+      }
+    },
+    "user_notes_summary": {
+      "type": "object",
+      "properties": {
+        "uncertainties": { "type": "array", "items": { "type": "string" } },
+        "needs_review": { "type": "array", "items": { "type": "string" } },
+        "workarounds": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uncertainties", "needs_review", "workarounds"],
+      "additionalProperties": false
+    },
+    "eval_feedback": {
+      "type": "object",
+      "properties": {
+        "suggestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "assertion": { "type": "string" },
+              "reason": { "type": "string" }
+            },
+            "required": ["assertion", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "overall": { "type": "string" }
+      },
+      "required": ["suggestions", "overall"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "expectations",
+    "summary",
+    "claims",
+    "user_notes_summary",
+    "eval_feedback"
+  ],
+  "additionalProperties": false
+}

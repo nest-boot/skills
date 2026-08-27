@@ -1,0 +1,27 @@
+{
+  "skill_name": "nest-boot-row-level-security",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "给 tenant_document 增加 tenant RLS，请配置装饰器、生成迁移并验证空上下文。",
+      "expected_output": "以 Entity RLS 装饰器为真源，由 MikroORM 生成迁移，并验证空、正确和错误 tenant 上下文。",
+      "files": [],
+      "expectations": [
+        "RLS policy 由 Entity 装饰器配置，不只手写在 migration SQL",
+        "可选上下文使用 nullif(current_setting(..., true), '') 防止空字符串 cast 错误",
+        "验证空上下文无数据泄漏，正确 tenant 可见，其他 tenant 不可见"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "BullMQ 任务中处理 tenant 资源时被 RLS 拦截，应该全局关闭 RLS 吗？",
+      "expected_output": "不全局禁用 RLS，在最小 RequestContext.child 范围中设置 tenant 或明确的局部绕过。",
+      "files": [],
+      "expectations": [
+        "不修改全局数据库或应用 RLS 开关",
+        "在单个 job 的 RequestContext.child 内传入精确 tenant 上下文",
+        "如需 bypass，限定在最小操作范围并记录安全的审计信息"
+      ]
+    }
+  ]
+}

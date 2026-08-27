@@ -1,0 +1,41 @@
+{
+  "skill_name": "nest-boot-module-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "在一个使用 @nest-boot 的 NestJS 服务中新增带状态枚举的 tenant-scoped 审批模块，包含 Entity、Service、GraphQL Resolver 和创建 Input。请设计文件结构并实现。",
+      "expected_output": "先识别宿主模块根目录，再按运行时职责拆分模块，让共享状态枚举拥有稳定单一来源，并把 GraphQL/ORM 细节交给对应专项规范。",
+      "files": [],
+      "expectations": [
+        "从相邻模块、tsconfig 和框架配置识别 <module-root>，不硬编码特定仓库路径",
+        "Entity、Module、Service、Resolver 和带装饰器的 Input 使用职责清晰的 class 文件",
+        "共享 enum 位于模块 enums 目录并由 Entity 与 GraphQL 复用同一来源",
+        "只导出其他模块实际需要注入的 provider"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "一个 NestJS 文件同时包含 Entity、三个 DTO、Resolver、Service、十个局部 type 和两个只使用一次的 helper。请重构模块，但不要为了形式制造大量空壳文件。",
+      "expected_output": "按运行时职责拆分 Entity、Service、Resolver 和 DTO，只提取跨文件复用或复杂的类型，让局部短类型和 helper 保持就近。",
+      "files": [],
+      "expectations": [
+        "Entity、Service、Resolver 与需要运行时元数据的 DTO 分离",
+        "跨文件复用或复杂的 type/interface 才进入 types/interfaces 目录",
+        "单点短小辅助类型与私有 helper 不被机械拆成独立文件",
+        "重构后检查模块 providers/exports 和导入方向，没有用 forwardRef 掩盖新循环"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "为 NestJS 模块新增一个内部队列 payload、一个需要 class-validator 和 Swagger 的 HTTP 输入，以及一个会进入 GraphQL 和数据库的状态有限集。应该分别使用什么定义并放在哪里？",
+      "expected_output": "内部 payload 使用纯 type/interface，HTTP 输入使用带运行时元数据的 class，共享有限集使用独立 enum，并由专项技能处理 GraphQL 注册和 ORM 映射。",
+      "files": [],
+      "expectations": [
+        "队列 payload 使用编译期 type/interface，并按复用范围决定就近或 types/interfaces 目录",
+        "HTTP 输入使用 class 以承载 validator、transformer 和 Swagger 元数据",
+        "状态 enum 只有一份源定义，默认键值一致且不复制字面量",
+        "GraphQL enum 注册和 MikroORM 映射分别路由到对应专项 skill"
+      ]
+    }
+  ]
+}

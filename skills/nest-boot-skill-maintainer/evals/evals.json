@@ -1,0 +1,77 @@
+{
+  "skill_name": "nest-boot-skill-maintainer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我在项目里照 nest-boot-graphql skill 写 Connection，发现示例注入了 ConnectionManager 却调用不存在的 service.getConnection。问题已经用本地框架源码确认了，请把经验沉淀到上游 skill，并提交 PR。",
+      "expected_output": "将问题路由到 nest-boot/skills，更新 GraphQL reference 与对应 eval，运行 README/全仓校验，从专用分支提交一个包含证据和验证结果的 PR。",
+      "files": [],
+      "expectations": [
+        "不修改业务项目中的 .agents/skills 安装副本",
+        "对照框架源码确认 ConnectionManager.find 的真实 API，并只修改相关 skill/reference",
+        "新增或更新能复现旧错误的 eval，运行维护脚本后从非 main 分支提交 PR",
+        "修复明确时不创建内容重复的仪式性 issue"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "@nest-boot/logger 在没有 RequestContext 的定时任务里调用 assign 会抛异常，这看起来不是文案问题。帮我整理最小复现并给上游报 issue，先不要改 skill。",
+      "expected_output": "区分框架行为与 skill 指引，把问题转交 nest-boot-maintainer，由它向 nest-boot/nest-boot 准备脱敏最小复现和根因证据，并按用户授权创建 Issue，不提前用文档修改掩盖框架问题。",
+      "files": [],
+      "expectations": [
+        "明确改用 $nest-boot-maintainer，目标仓库选择 nest-boot/nest-boot 而不是 nest-boot/skills",
+        "Issue 包含版本、最小复现、观察行为、期望行为和源码或测试证据",
+        "不在框架行为未决时修改 Logger skill",
+        "不包含凭证、生产日志或项目私有标识"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我们公司项目规定所有模块必须放在 src/company-modules，我觉得 nest-boot-module-design 也应该强制所有用户这样做，直接给上游提 PR 吧。",
+      "expected_output": "识别这是项目私有目录约定，不修改通用 skill 或提交上游 PR；建议把规则保留在项目级 AGENTS.md、文档或本地 skill。",
+      "files": [],
+      "expectations": [
+        "将问题分类为业务项目私有约定",
+        "拒绝把 src/company-modules 固化为 Nest Boot 通用要求",
+        "建议使用项目级 AGENTS.md、文档或本地 skill 保存约定",
+        "不创建 GitHub issue、分支或 PR"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "已经发布的 nest-boot-best-practices 同时负责模块结构和跨层领域改名，我想把它拆成两个开发 skill 并删除旧目录，然后更新使用 --copy 安装的业务项目。请完成上游 PR 和安装迁移。",
+      "expected_output": "使用 skill-creator 按不同工作流与完成条件拆分 skill，为新名称建立互相路由和真实 eval，并在验证当前 skills CLI 行为后提供显式 remove/add 迁移；上游合并后再通过官方命令更新已授权消费项目。",
+      "files": [],
+      "expectations": [
+        "按主要开发任务、执行顺序和完成条件判断拆分，而不是只因文件长度或 review 场景改名",
+        "检查旧 skill 是否已进入默认分支、README、skills-lock.json 和安装目录",
+        "不假设 skills update 会删除旧名称或安装新名称，先验证当前 CLI 再给出 remove/add 命令",
+        "不直接编辑 .agents/skills 副本，并验证迁移后不会同时加载新旧重叠 skill"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "一个项目用 Node.js fetch 上传 Readable 时抛出 duplex option is required。我想把 duplex: 'half' 直接写成所有 Nest Boot 项目的通用规则，并新增一个 streaming skill。请验证并提交。",
+      "expected_output": "先核对锁定 Node/Undici 版本、官方源码或文档并运行最小行为探针，再判断这是框架中立的 Node.js 能力；若本仓库是合理所有者，使用中立 skill 名称、保留 Nest Boot 集成章节并增加能复现遗漏的 eval。",
+      "files": [],
+      "expectations": [
+        "不从单个项目报错直接推导无条件规则，记录版本并使用官方证据",
+        "运行最小探针对比缺少和设置 duplex: 'half' 的可观察行为",
+        "区分 Node.js 通用能力与 @nest-boot 公开 API，名称和 description 反映真实范围",
+        "结构校验之外人工审查规则、示例、失败路径和对应 eval"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "skills PR 的 CI 和在线 reviewer 都通过了，但本地复核后又推送了一个修复提交。请继续处理审查并在全部解决后合并。",
+      "expected_output": "把最新 head SHA 作为审查单位，重新等待 CI 和 reviewer，检查普通评论、reviews 与 inline threads，验证建议后闭环修复；确认当前 head clean、可合并且用户已授权后沿用仓库策略合并。",
+      "files": [],
+      "expectations": [
+        "比较 reviewer 的 reviewed commit 与当前 headRefOid，不把旧提交的 clean 回执用于新提交",
+        "同时检查 CI、普通评论、reviews 和 inline reviewThreads，不把暂时没有评论当作审查完成",
+        "每条建议先回读真实代码或外部行为，修复后重新验证、推送并审查最新 head",
+        "只有当前 head 无未解决项且用户明确授权时才合并，并验证远端默认分支包含合并结果提交"
+      ]
+    }
+  ]
+}

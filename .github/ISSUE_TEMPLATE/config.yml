@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Nest Boot framework bug or feature
+    url: https://github.com/nest-boot/nest-boot/issues/new/choose
+    about: Report @nest-boot runtime, type, public API, generation, or official documentation problems in the framework repository.
+  - name: Private security report
+    url: https://github.com/nest-boot/skills/security/advisories/new
+    about: Do not disclose vulnerabilities or sensitive data in a public Issue.
