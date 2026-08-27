@@ -27,7 +27,7 @@
     },
     {
       "id": 3,
-      "prompt": "我们公司项目规定所有模块必须放在 src/company-modules，我觉得 nest-boot-best-practices 也应该强制所有用户这样做，直接给上游提 PR 吧。",
+      "prompt": "我们公司项目规定所有模块必须放在 src/company-modules，我觉得 nest-boot-module-design 也应该强制所有用户这样做，直接给上游提 PR 吧。",
       "expected_output": "识别这是项目私有目录约定，不修改通用 skill 或提交上游 PR；建议把规则保留在项目级 AGENTS.md、文档或本地 skill。",
       "files": [],
       "expectations": [
