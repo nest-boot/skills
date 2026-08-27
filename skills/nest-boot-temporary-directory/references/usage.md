@@ -41,13 +41,26 @@ export class ReportService {
 
 不要在 Multer `destination` callback 中调用 `create()`。请求体可能在拦截器入口之后分块到达，Busboy/Multer 的流事件回调不应承担读取 `RequestContext` 的责任。
 
-在拦截器入口先解析当前请求的目录，并构造只捕获该路径的 per-request delegate：
+在拦截器入口先解析当前请求的目录，并构造只捕获该路径的 per-request delegate。`FileInterceptor()` 返回的动态 class 需要注入 `MULTER_MODULE_OPTIONS`，所以应通过 `ModuleRef.create()` 实例化，不能直接 `new Delegate()`：
 
 ```typescript
+import { TemporaryDirectoryService } from '@nest-boot/temporary-directory';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { Observable } from 'rxjs';
+
 @Injectable()
 export class UploadInterceptor implements NestInterceptor {
   constructor(
     private readonly temporaryDirectory: TemporaryDirectoryService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async intercept(
@@ -58,13 +71,16 @@ export class UploadInterceptor implements NestInterceptor {
     const Delegate = FileInterceptor('file', {
       storage: diskStorage({ destination: directory }),
     });
+    const delegate = await this.moduleRef.create(Delegate);
 
-    return await new Delegate().intercept(context, next);
+    return await delegate.intercept(context, next);
   }
 }
 ```
 
-不要把 `directory` 或构造后的 request-specific delegate 写入 singleton interceptor 字段，否则并发请求可能共享错误路径。若第三方 API 必须接收 callback，callback 只使用局部变量中已经解析好的字符串。
+`ModuleRef.create()` 让动态 delegate 获得当前模块可见的 `MulterModule` 配置；直接 `new` 会使用默认空配置，可能绕过全局 `limits`、`fileFilter` 或其他保护。全局 options 与 `FileInterceptor` local options 是浅合并；如果 local options 也定义 `limits`，它会替换完整的全局 `limits` 对象，调用方必须显式保留所有必要限制。
+
+不要把 `directory` 或构造后的 request-specific delegate 写入 singleton interceptor 字段，否则并发请求可能共享错误路径。也可以拆分成前置目录拦截器与静态 `FileInterceptor`，让 Nest 直接实例化后者；关键是先解析路径、后续 callback 只读取该请求的固定路径，同时保留 DI。若第三方 API 必须接收 callback，callback 只使用局部变量中已经解析好的字符串。
 
 ## 生命周期与持久化
 
@@ -97,7 +113,8 @@ return { directory };
 2. 成功响应后最终收到 `ENOENT`；
 3. handler 抛错后仍最终收到 `ENOENT`；
 4. 并发上下文获得不同 root；
-5. 对上传场景，用延迟分块 multipart 请求验证 destination 不在流 callback 中读取上下文。
+5. 对上传场景，用延迟分块 multipart 请求验证 destination 不在流 callback 中读取上下文；
+6. `MulterModule` 的全局大小、类型等限制在自定义拦截器中仍然生效。
 
 清理可能在响应完成后的事件循环阶段发生，使用有界重试检查最终删除，不要用固定长时间 sleep。
 

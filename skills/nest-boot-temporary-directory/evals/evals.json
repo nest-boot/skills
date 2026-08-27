@@ -3,13 +3,14 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "一个 singleton Nest Interceptor 用 Multer diskStorage 接收分块上传，现在在 destination callback 里调用 TemporaryDirectoryService.create()，慢速上传偶发报 Temporary directory requires an active RequestContext。请修复并补回归测试。",
-      "expected_output": "在 interceptor 入口的活动上下文中先创建目录，为当前请求构造只捕获路径字符串的 delegate，并用延迟分块 multipart 集成测试验证成功与自动清理。",
+      "prompt": "一个 singleton Nest Interceptor 用 Multer diskStorage 接收分块上传，现在在 destination callback 里调用 TemporaryDirectoryService.create()，慢速上传偶发报 Temporary directory requires an active RequestContext。应用还通过 MulterModule 配置了全局 fileSize 和 fileFilter。请修复并补回归测试。",
+      "expected_output": "在 interceptor 入口的活动上下文中先创建目录，通过 Nest DI 为当前请求实例化只捕获路径字符串的 delegate，并用延迟分块 multipart 集成测试验证上传保护、成功处理与自动清理。",
       "files": [],
       "expectations": [
         "在 intercept 等可靠入口 await TemporaryDirectoryService.create，而不是在 Multer 或流事件 callback 中读取 RequestContext",
+        "FileInterceptor 动态 delegate 由 Nest DI 或 ModuleRef.create 实例化，不直接 new 后丢失 MulterModule 全局配置",
         "请求专属目录和 delegate 保持为当前调用局部变量，不写入 singleton provider 字段",
-        "真实模块集成测试覆盖延迟分块上传以及成功或异常后的最终删除"
+        "真实模块集成测试覆盖延迟分块上传、全局大小或类型限制以及成功或异常后的最终删除"
       ]
     },
     {

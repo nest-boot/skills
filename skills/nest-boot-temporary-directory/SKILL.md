@@ -20,6 +20,7 @@ description: 使用 `@nest-boot/temporary-directory` 在 NestJS HTTP、GraphQL�
 
 - 请求专属路径只保存在当前调用的局部变量中，不放到 singleton provider 字段。
 - 需要把路径传给回调式 API 时，优先传固定字符串或闭包捕获的字符串。
+- `FileInterceptor()` 等依赖 Nest provider 的动态 mixin 必须由 Nest DI 或 `ModuleRef.create()` 实例化，不能直接 `new` 后绕过全局配置。
 - 自定义非 HTTP 入口使用 `RequestContext.run(...)` 时，目录创建和所有使用者都位于同一个 awaited callback 内。
 - 集成测试使用真实 `TemporaryDirectoryModule` 和真实入口生命周期，覆盖成功、异常后的最终删除；流式上传增加延迟分块请求，验证回调不依赖 `RequestContext`。
 
