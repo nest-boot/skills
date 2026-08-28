@@ -8,7 +8,6 @@ of queries. Outputs results as JSON.
 import argparse
 import json
 import queue
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,7 +17,11 @@ import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-from scripts.utils import parse_skill_md
+from scripts.codex_exec import (
+    build_codex_exec_command,
+    require_codex_cli,
+)
+from scripts.utils import parse_skill_md, validate_skill_name
 
 
 def build_skill_fixture(
@@ -198,10 +201,12 @@ def run_single_query(
     Isolation prevents concurrent eval workers from seeing one another's
     temporary skills.
     """
+    skill_name = validate_skill_name(skill_name)
     marker = f"SKILL_TRIGGERED_{uuid.uuid4().hex}"
 
     with tempfile.TemporaryDirectory(prefix="skill-trigger-eval-") as temp_dir:
-        working_dir = Path(temp_dir)
+        temp_root = Path(temp_dir)
+        working_dir = temp_root / "workspace"
         skill_dir = working_dir / ".agents" / "skills" / skill_name
         skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
@@ -210,18 +215,12 @@ def run_single_query(
             encoding="utf-8",
         )
 
-        cmd = [
-            "codex",
-            "exec",
-            "--ephemeral",
-            "--sandbox",
-            "read-only",
-            "--skip-git-repo-check",
-            "--json",
-        ]
-        if model:
-            cmd.extend(["--model", model])
-        cmd.append("-")
+        cmd = build_codex_exec_command(
+            reasoning_effort="medium",
+            sandbox="read-only",
+            model=model,
+        )
+        cmd.extend(["--json", "-"])
 
         return run_codex_until_skill_load(
             cmd,
@@ -286,8 +285,7 @@ def run_eval(
     model: str | None = None,
 ) -> dict:
     """Run the full eval set and return results."""
-    if shutil.which("codex") is None:
-        raise RuntimeError("codex CLI was not found on PATH")
+    require_codex_cli()
     if num_workers < 1:
         raise ValueError("num_workers must be at least 1")
     if runs_per_query < 1:

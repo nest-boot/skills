@@ -12,6 +12,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.codex_exec import (
+    build_codex_exec_command,
+)
 from scripts.utils import parse_skill_md
 
 DESCRIPTION_SCHEMA = (
@@ -31,19 +34,12 @@ def _call_codex(
     Prompt goes over stdin (not argv) because it embeds the full SKILL.md
     body and can easily exceed comfortable argv length.
     """
-    cmd = [
-        "codex",
-        "exec",
-        "--ephemeral",
-        "--sandbox",
-        "read-only",
-        "--skip-git-repo-check",
-        "--output-schema",
-        str(DESCRIPTION_SCHEMA),
-    ]
-    if model:
-        cmd.extend(["--model", model])
-    cmd.append("-")
+    cmd = build_codex_exec_command(
+        reasoning_effort="high",
+        sandbox="read-only",
+        model=model,
+    )
+    cmd.extend(["--output-schema", str(DESCRIPTION_SCHEMA), "-"])
 
     result = subprocess.run(
         cmd,

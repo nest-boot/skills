@@ -52,7 +52,6 @@ npx skills add https://github.com/nest-boot/skills \
 | [nest-boot-skill-maintainer](skills/nest-boot-skill-maintainer/) | 在 Nest Boot 消费项目或 `nest-boot/skills` 仓库中维护和改进 agent skills。适用于直接修改项目已安装的 `.agents/skills` 副本并自评估、把成熟改进泛化后提交上游 issue 与 PR、新增或重组 skill、调整触发描述与 eval、处理拆分重命名迁移、同步合并后的正式版本以及闭环 CI 和审查；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或未经验证的猜测不应上游化。 |
 | [nest-boot-temporary-directory](skills/nest-boot-temporary-directory/) | 使用 `@nest-boot/temporary-directory` 在 NestJS HTTP、GraphQL、队列或其他 `RequestContext` 工作单元中创建并自动清理临时目录。适用于模块注册、临时文件生命周期、Multer/流式上传、后台任务、命名空间、上下文丢失或清理测试；重点保证目录只在活动上下文中分配、异步消费者不会越过上下文边界、清理所有权保持单一。 |
 | [nodejs-streaming](skills/nodejs-streaming/) | 在 Node.js 服务、CLI 与 worker 中设计、实现、重构和测试内存有界的 Node.js Stream 与 Web Streams 数据路径。适用于上传、下载、代理、对象存储、multipart、fetch 请求/响应、媒体处理、压缩解压或子进程集成，以及编写 `Readable`、`Writable`、`Transform`、`pipeline`、`createReadStream`、背压、重试、超时、取消、字节上限、并发预算和 OOM 回归；覆盖 Express、Fastify、NestJS 等框架，也用于排查伪流式整体缓冲、未消费响应、跨重试复用 stream 和并发放大。 |
-| [skill-creator](skills/skill-creator/) | Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy. |
 <!-- END GENERATED SKILLS -->
 
 ## 贡献与安全
