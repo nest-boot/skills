@@ -44,8 +44,27 @@ import os
 from pathlib import Path
 import sys
 
-record = os.environ["AUTOREVIEW_FAKE_RECORD"]
 args = sys.argv[1:]
+if invocations := os.environ.get("AUTOREVIEW_FAKE_CODEX_INVOCATIONS"):
+    selected_env = {
+        key: os.environ.get(key)
+        for key in (
+            "HOME",
+            "USERPROFILE",
+            "XDG_CACHE_HOME",
+            "XDG_CONFIG_HOME",
+            "XDG_DATA_HOME",
+            "XDG_STATE_HOME",
+            "CODEX_HOME",
+            "PATH",
+        )
+    }
+    with open(invocations, "a", encoding="utf-8") as file:
+        file.write(json.dumps({"argv": args, "cwd": os.getcwd(), "env": selected_env}) + "\n")
+if "--version" in args or "-v" in args:
+    print("codex-cli 0.0.0-test")
+    raise SystemExit(0)
+record = os.environ["AUTOREVIEW_FAKE_RECORD"]
 Path(record).write_text(json.dumps({"argv": args, "cwd": os.getcwd(), "stdin": sys.stdin.read()}))
 if mutation := os.environ.get("AUTOREVIEW_FAKE_MUTATE"):
     Path(mutation).write_text("mutated during review\n")
@@ -1129,7 +1148,7 @@ class AutoreviewHardeningTests(unittest.TestCase):
             "password_validator.go",
             ".env.example",
             "private/parser.py",
-            ".agents/skills/openclaw-secret-scanning-maintainer/SKILL.md",
+            ".agents/skills/secret-scanning-maintainer/SKILL.md",
             "design-tokens/colors.json",
             "design-tokens.json",
             "design_tokens.json",
@@ -1141,6 +1160,13 @@ class AutoreviewHardeningTests(unittest.TestCase):
         ):
             with self.subTest(rel=rel):
                 self.assertIsNone(self.helper["tracked_sensitive_repo_path_risk"](rel))
+
+    def test_generic_agents_skill_layout_is_recognized(self) -> None:
+        skill_instruction_path = self.helper["skill_instruction_path"]
+
+        self.assertTrue(
+            skill_instruction_path(Path(".agents/skills/example/SKILL.md"))
+        )
 
     def test_untracked_token_source_paths_remain_reviewable(self) -> None:
         for rel in (
@@ -2809,7 +2835,7 @@ class AutoreviewHardeningTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             repo = init_repo(Path(tempdir))
             try:
-                os.environ["CLAUDE_CONFIG_DIR"] = str(repo / ".claude")
+                os.environ["CLAUDE_CONFIG_DIR"] = str(repo / "claude-config")
                 os.environ["CODEX_HOME"] = str(repo / ".codex")
                 os.environ["PI_CODING_AGENT_DIR"] = str(repo / ".pi")
                 os.environ["CODEX_CA_CERTIFICATE"] = str(repo / "codex-ca.pem")
@@ -3579,6 +3605,248 @@ class AutoreviewHardeningTests(unittest.TestCase):
             self.assertIn("executable not found", reason)
 
     @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_dry_run_rejects_codex_launcher_broken_by_isolated_home(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            source_home = root / "source-codex-home"
+            direct_bin = (
+                source_home
+                / "packages"
+                / "standalone"
+                / "current"
+                / "bin"
+                / "codex"
+            )
+            direct_bin.parent.mkdir(parents=True)
+            write_executable(direct_bin, fake_codex_script())
+            source_auth = source_home / "auth.json"
+            source_auth.write_text(
+                '{"token":"test-token-placeholder"}',
+                encoding="utf-8",
+            )
+            (source_home / "config.toml").write_text(
+                'cli_auth_credentials_store = "file"\n',
+                encoding="utf-8",
+            )
+            launcher_dir = root / "launcher-bin"
+            launcher_dir.mkdir()
+            launcher = write_executable(
+                launcher_dir / "codex",
+                r'''#!/usr/bin/env python3
+import os
+from pathlib import Path
+import sys
+
+target = Path(os.environ["CODEX_HOME"]) / "packages" / "standalone" / "current" / "bin" / "codex"
+if not target.is_file():
+    print("codex: official standalone CLI is missing", file=sys.stderr)
+    raise SystemExit(127)
+os.execv(target, [str(target), *sys.argv[1:]])
+''',
+            )
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            env.update(
+                {
+                    "CODEX_HOME": str(source_home),
+                    "PATH": f"{launcher_dir}{os.pathsep}{env['PATH']}",
+                }
+            )
+
+            caller_probe = subprocess.run(
+                [str(launcher), "--version"],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(caller_probe.returncode, 0, caller_probe.stderr)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                    "--dry-run",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertRegex(result.stdout, r"engine check: codex[^\n]* UNAVAILABLE")
+            self.assertIn(str(launcher), result.stdout)
+            self.assertIn("--codex-bin", result.stdout)
+            self.assertIn("CODEX_BIN", result.stdout)
+            self.assertIn("correct PATH", result.stdout)
+
+            invocations = root / "codex-invocations.jsonl"
+            env["AUTOREVIEW_FAKE_CODEX_INVOCATIONS"] = str(invocations)
+            normal_run = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(
+                normal_run.returncode,
+                1,
+                normal_run.stdout + normal_run.stderr,
+            )
+            self.assertIn("Codex isolation preflight failed", normal_run.stderr)
+            self.assertIn(str(launcher), normal_run.stderr)
+            self.assertIn("--codex-bin", normal_run.stderr)
+            self.assertFalse(invocations.exists())
+
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_codex_probe_matches_run_environment_without_mutating_auth(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            (root / "direct-bin").mkdir()
+            direct_bin = write_executable(
+                root / "direct-bin" / "codex",
+                fake_codex_script(),
+            )
+            source_home = root / "source-codex-home"
+            source_home.mkdir()
+            source_auth = source_home / "auth.json"
+            source_auth.write_text(
+                '{"token":"test-token-placeholder"}',
+                encoding="utf-8",
+            )
+            (source_home / "config.toml").write_text(
+                'cli_auth_credentials_store = "file"\n',
+                encoding="utf-8",
+            )
+            invocations = root / "codex-invocations.jsonl"
+            record = root / "codex-record.json"
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            env.update(
+                {
+                    "AUTOREVIEW_FAKE_CODEX_INVOCATIONS": str(invocations),
+                    "AUTOREVIEW_FAKE_RECORD": str(record),
+                    "CODEX_HOME": str(source_home),
+                }
+            )
+            auth_before = source_auth.read_bytes()
+            links_before = source_auth.stat().st_nlink
+
+            dry_run = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                    "--codex-bin",
+                    str(direct_bin),
+                    "--dry-run",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(dry_run.returncode, 0, dry_run.stdout + dry_run.stderr)
+            self.assertRegex(dry_run.stdout, r"engine check: codex[^\n]* OK\b")
+            self.assertEqual(source_auth.read_bytes(), auth_before)
+            self.assertEqual(source_auth.stat().st_nlink, links_before)
+            probe_invocations = [
+                json.loads(line)
+                for line in invocations.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(
+                [entry["argv"] for entry in probe_invocations],
+                [["--version"]],
+            )
+
+            invocations.unlink()
+            review = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                    "--codex-bin",
+                    str(direct_bin),
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(review.returncode, 0, review.stdout + review.stderr)
+            run_invocations = [
+                json.loads(line)
+                for line in invocations.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(len(run_invocations), 2)
+            self.assertEqual(run_invocations[0]["argv"], ["--version"])
+            self.assertIn("exec", run_invocations[1]["argv"])
+
+            def normalized_runtime_env(invocation: dict[str, object]) -> dict[str, str]:
+                selected = invocation["env"]
+                assert isinstance(selected, dict)
+                home = Path(str(selected["HOME"]))
+                runtime_root = home.parent
+                normalized = {
+                    key: str(Path(str(selected[key])).relative_to(runtime_root))
+                    for key in (
+                        "HOME",
+                        "USERPROFILE",
+                        "XDG_CACHE_HOME",
+                        "XDG_CONFIG_HOME",
+                        "XDG_DATA_HOME",
+                        "XDG_STATE_HOME",
+                        "CODEX_HOME",
+                    )
+                }
+                normalized["PATH"] = str(selected["PATH"])
+                return normalized
+
+            self.assertEqual(
+                normalized_runtime_env(probe_invocations[0]),
+                normalized_runtime_env(run_invocations[0]),
+            )
+            self.assertEqual(
+                normalized_runtime_env(run_invocations[0]),
+                normalized_runtime_env(run_invocations[1]),
+            )
+
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
     def test_dry_run_flag_exits_zero_when_bundle_and_engine_resolve(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:
             root = Path(tempdir)
@@ -3666,7 +3934,10 @@ class AutoreviewHardeningTests(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn("prompt: FAILED", result.stdout)
             self.assertIn("must be outside the reviewed repository", result.stdout)
-            self.assertRegex(result.stdout, r"engine check: codex[^\n]* OK\b")
+            self.assertRegex(
+                result.stdout,
+                r"engine check: codex[^\n]* UNAVAILABLE",
+            )
 
     @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
     def test_dry_run_flag_exits_nonzero_when_trufflehog_missing(self) -> None:

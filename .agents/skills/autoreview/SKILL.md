@@ -5,7 +5,7 @@ description: "Structured Codex, Claude, Amp, Pi, or Kimi code review when explic
 
 # Auto Review
 
-Run the bundled structured review helper only when the user explicitly asks for autoreview, a second-model review, or one of its named review engines. This is code review, not Guardian `auto_review` approval routing.
+Run the bundled structured review helper only when the user explicitly asks for autoreview, a second-model review, or one of its named review engines.
 
 Codex review is the default when no engine is set. It uses `gpt-5.6-sol` with `high` reasoning by default, then retries once with `gpt-5.6-terra` only when the account cannot access Sol. Claude review is optional and uses `claude-fable-5` by default. Amp review is optional and uses `openai/gpt-5.6-sol` with `high` reasoning by default. Pi and Kimi use the model configured by their respective CLIs unless `--model` overrides it.
 
@@ -35,13 +35,10 @@ Do not invoke Autoreview automatically before a commit, push, PR, merge, deploy,
 - Reviewer subprocesses preserve engine authentication and non-credentialed proxy variables needed by headless or restricted-network environments while stripping process-injection, Git override, and credentialed proxy values.
 - Immediately before every provider call, autoreview writes the exact outgoing review pack to an owner-only temporary file and scans it with TruffleHog using `verified,unknown`. The scan covers prompt and dataset inputs, untracked content, and every diff line, including deleted lines. A finding, scanner error, or missing TruffleHog binary refuses the send and names the implicated repository file when it can be resolved; credentials are never redacted and forwarded. Security-sensitive paths remain omitted. Safe large diffs are sent as one pass while they fit the aggregate prompt limit, then partitioned into complete bounded passes without truncation.
 - For regression provenance, keep roles separate: blamed code author, blamed PR author, PR merger/committer, current PR author, and PR/date. If no blamed PR is traceable, use the blamed commit as the provenance: commit SHA, date, and author username. Do not guess a merger or frame missing PR metadata as a separate finding.
-- If the blamed PR was merged by `clawsweeper[bot]` or another automation, identify the human trigger when practical. Check timeline/comments first; if rate-limited, use gitcrawl/cache or public PR HTML. Look for maintainer commands such as `@clawsweeper automerge`, `/landpr`, or labels/status comments that armed automerge. Report `automerge triggered by @login`; if not found, say trigger unknown.
 - Do not invoke built-in `codex review`, nested reviewers, or review panels from inside the review. The helper builds one validated bundle, calls the selected engine once for normal inputs or once per complete bounded chunk for oversized inputs, validates the structured results, and stops.
 - Stop as soon as the helper exits 0 with no accepted/actionable findings. Do not run an extra review just to get a nicer "clean" line, a second opinion, or clearer closeout wording.
 - Treat the helper's successful exit plus absence of actionable findings as the clean review result, even if the underlying Codex CLI output is terse.
 - If rejecting a finding as intentional/not worth fixing, add a brief inline code comment only when it explains a real invariant or ownership decision that future reviewers should know.
-- If `gh`/Gitcrawl reports `database disk image is malformed`, run `gitcrawl doctor --json` once to let the portable cache repair before retrying review; do not bypass the shim unless repair fails and freshness requires live GitHub.
-- If Gitcrawl reports a portable manifest mismatch, source/runtime DB health error, or stale portable-store checkout, run `gitcrawl doctor --json` and inspect `source_db_health`, `runtime_db_health`, and `portable_store_status` before falling back to live GitHub.
 - Do not push just to review. Push only when the user requested push/ship/PR update.
 
 ## Scope
@@ -61,25 +58,11 @@ export AUTOREVIEW_HARNESS=".agents/skills/autoreview/scripts/test-review-harness
 ```
 
 ```bash
-# Claude Code project-local skill in the current repo:
-export AUTOREVIEW=".claude/skills/autoreview/scripts/autoreview"
-export AUTOREVIEW_HARNESS=".claude/skills/autoreview/scripts/test-review-harness"
-```
-
-```bash
-# Source checkout of openclaw/agent-skills:
-export AUTOREVIEW="skills/autoreview/scripts/autoreview"
-export AUTOREVIEW_HARNESS="skills/autoreview/scripts/test-review-harness"
-```
-
-```bash
 # Global skill:
 export AGENTS_HOME="${AGENTS_HOME:-$HOME/.agents}"
 export AUTOREVIEW="$AGENTS_HOME/skills/autoreview/scripts/autoreview"
 export AUTOREVIEW_HARNESS="$AGENTS_HOME/skills/autoreview/scripts/test-review-harness"
 ```
-
-When using Claude Code, set `AGENTS_HOME="$HOME/.claude"` for global skills.
 
 On native Windows, choose the matching pair:
 
@@ -87,18 +70,6 @@ On native Windows, choose the matching pair:
 # Project-local skill in the current repo for Codex and other agents:
 $AUTOREVIEW = ".agents\skills\autoreview\scripts\autoreview"
 $AUTOREVIEW_HARNESS = ".agents\skills\autoreview\scripts\test-review-harness.ps1"
-```
-
-```powershell
-# Claude Code project-local skill in the current repo:
-$AUTOREVIEW = ".claude\skills\autoreview\scripts\autoreview"
-$AUTOREVIEW_HARNESS = ".claude\skills\autoreview\scripts\test-review-harness.ps1"
-```
-
-```powershell
-# Source checkout of openclaw/agent-skills:
-$AUTOREVIEW = "skills\autoreview\scripts\autoreview"
-$AUTOREVIEW_HARNESS = "skills\autoreview\scripts\test-review-harness.ps1"
 ```
 
 ```powershell
@@ -184,7 +155,7 @@ Recommended model defaults:
 
 | Engine              | Default model                                      | Source note                                           |
 | ------------------- | -------------------------------------------------- | ----------------------------------------------------- |
-| **codex** (default) | `gpt-5.6-sol` -> `gpt-5.6-terra` on access failure | OpenClaw org review default                           |
+| **codex** (default) | `gpt-5.6-sol` -> `gpt-5.6-terra` on access failure | Bundled autoreview default                           |
 | **claude**          | `claude-fable-5`                                   | Anthropic's most capable widely released Claude model |
 | **amp**             | `openai/gpt-5.6-sol`                               | Amp structured-generation review default              |
 
@@ -317,7 +288,7 @@ The helper:
 - scans safe Git patches in full, recognizes synthetic fixture values tied to their credential field, reviews them in one pass up to the aggregate prompt limit, and automatically uses complete bounded passes above it
 - should be left in `--mode auto` or forced to `--mode branch` for PR/branch work; do not force `--mode local` after committing
 - writes only to stdout unless `--output`, `--json-output`, or live streamed engine stderr is set
-- supports `--dry-run` (validates bundle construction and reviewer CLI binary resolution without contacting any engine; exits nonzero if either check fails), an opt-in per-reviewer wall-clock bound via `--engine-timeout-seconds`, `--prompt`, repo-relative `--prompt-file`, repo-relative `--dataset`, `--no-tools`, `--no-web-search`, repeatable Codex-only safe model/response tuning with `--codex-config key=value`, Codex-only `--codex-speed fast|flex|default`, and commit refs
+- supports `--dry-run` (validates bundle construction, reviewer CLI resolution, and local isolation startup with version/help probes without contacting a provider; exits nonzero if any check fails), an opt-in per-reviewer wall-clock bound via `--engine-timeout-seconds`, `--prompt`, repo-relative `--prompt-file`, repo-relative `--dataset`, `--no-tools`, `--no-web-search`, repeatable Codex-only safe model/response tuning with `--codex-config key=value`, Codex-only `--codex-speed fast|flex|default`, and commit refs
 - supports `--stream-engine-output` or `AUTOREVIEW_STREAM_ENGINE_OUTPUT=1` for live engine text while preserving structured validation; Codex and Claude hide tool/file event details, emit compact activity summaries, and report usage at turn completion
 - supports per-engine `--model`, `--thinking`, and Claude `--fallback-model`
 - uses built-in defaults `codex=gpt-5.6-sol` with `high` reasoning and an access-only `gpt-5.6-terra` retry, `claude=claude-fable-5`, and `amp=openai/gpt-5.6-sol` with `high` reasoning; honors `AUTOREVIEW_MODEL`, `AUTOREVIEW_THINKING`, `AUTOREVIEW_FALLBACK_MODEL`, and per-engine `AUTOREVIEW_<ENGINE>_MODEL` / `AUTOREVIEW_<ENGINE>_THINKING` environment overrides when CLI flags are omitted
