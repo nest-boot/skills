@@ -12,7 +12,7 @@ Describe the real development failure this prevents. Link sanitized reproduction
 - [ ] Updated or added a realistic eval
 - [ ] Ran `python3 skills/nest-boot-skill-maintainer/scripts/update_readme.py --repo .`
 - [ ] Ran `python3 skills/nest-boot-skill-maintainer/scripts/validate_skills.py --repo .`
-- [ ] Ran OpenAI `quick_validate.py` for every changed skill
+- [ ] Ran project-installed `quick_validate.py` for every changed skill
 - [ ] Ran `git diff --check`
 
 List command results and explain any check that was not run.

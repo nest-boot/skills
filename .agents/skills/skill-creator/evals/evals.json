@@ -1,0 +1,93 @@
+{
+  "skill_name": "skill-creator",
+  "evals": [
+    {
+      "id": 1,
+      "name": "create-release-notes-curator",
+      "prompt": "Create a release-notes-curator skill that reads Changesets and changelog fragments in a monorepo, groups entries by package, highlights breaking changes, and marks missing information when evidence is insufficient. It must not invent versions, impact, or migration guidance. Save the installable skill under outputs/release-notes-curator/. The requirements are complete; do not ask follow-up questions. Also write realistic evals, but do not run them in this task. The evals must separately cover: (1) a multi-package breaking change where the same change appears in both a Changeset and a changelog; (2) missing metadata or migration information; and (3) no publishable changes.",
+      "expected_output": "Create a structurally validated, tightly scoped release-notes-curator skill with clear triggering metadata, a reusable workflow, and at least three realistic evals that distinguish correct behavior, without unrelated documentation or resources unsupported by the request.",
+      "files": [],
+      "expectations": [
+        "outputs/release-notes-curator/SKILL.md exists, its frontmatter name matches the directory, and its description covers both explicit release-notes requests and implicit Changeset/changelog-based triggering scenarios",
+        "The core workflow requires checking input evidence before organizing content by package and change level, explicitly marks breaking changes and missing information, and forbids inventing versions, impact, or migration guidance",
+        "The generated skill's top level, evals root, and runtime resource directories contain only necessary files and no auxiliary README, CHANGELOG, COVERAGE, installation guide, coverage report, or process journal; deliberately named fixture inputs that verify ignored non-release content are not violations",
+        "If a reference is created, SKILL.md links to it directly, explains when to use it, and the reference has a clear role in the workflow",
+        "If a bundled script is created, the executor runs it with representative input and verifies its behavior; no script is required solely to satisfy this expectation",
+        "evals/evals.json includes a multi-package scenario that verifies prominent breaking-change presentation, package attribution, and duplicate-evidence merging",
+        "evals/evals.json includes a missing-metadata or missing-migration-information scenario that verifies gaps are reported explicitly without inventing versions, impact, or migration steps",
+        "evals/evals.json includes a no-publishable-changes scenario that verifies the output clearly reports no changes instead of producing empty or fabricated release notes",
+        "evals/evals.json follows the current schema: every eval has a non-empty expectations array that checks concrete grouping, evidence citations, gaps, non-fabrication, or empty-result behavior rather than relying only on file existence or keyword presence",
+        "The executor validates the generated directory through quick_validate.py or the equivalent validate_skill check built into package_skill, with an explicit successful result",
+        "The final skill source directory is outputs/release-notes-curator/; any separately generated installable package does not replace that source directory"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "improve-deployment-helper",
+      "prompt": "Improve the attached deployment-helper SKILL.md.fixture template. Preserve its skill name, narrow its scope to zero-downtime deployment planning, staged rollout, validation, and rollback for existing services, and stop claiming that it handles all DevOps work. Save the improved installable skill under outputs/deployment-helper/ with a real SKILL.md and add realistic evals. Do not modify the input fixture or run Codex evals.",
+      "expected_output": "Preserve the deployment-helper identity while rewriting its description and core workflow, removing unbounded DevOps responsibilities, and adding verifiable deployment gates, rollback conditions, and evals that cover distinct failure paths.",
+      "files": [
+        "evals/fixtures/deployment-helper/SKILL.md.fixture"
+      ],
+      "expectations": [
+        "The output preserves the deployment-helper directory and name, its description clearly triggers for deployment planning, staged rollout, validation, and rollback of existing services, and it no longer claims responsibility for all DevOps, infrastructure, or monitoring work",
+        "SKILL.md forms a closed loop from prerequisite evidence and compatibility checks through staged rollout, health signals, stop conditions, and rollback verification instead of listing generic deployment slogans",
+        "The improved version preserves the useful safety intent from the input while removing absolute, contradictory, or unverifiable rules, and it does not assume organizations, cloud providers, or commands absent from the fixture as universal facts",
+        "evals/evals.json covers at least three scenarios: a backward-incompatible database change, coexistence of old and new queue workers, and degrading canary metrics; every scenario has observable completion conditions",
+        "The input fixture remains unchanged, the improved version is written to outputs/deployment-helper/, and quick_validate.py succeeds"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "execute-manifest-evaluation",
+      "prompt": "Evaluate the attached release-readiness skill template with one candidate run and one no-skill baseline. Materialize SKILL.md.fixture as a candidate SKILL.md with its existing evals, create a temporary evaluation workspace with create_eval_workspace.py, and prepare iteration-1 through create_iteration.py using baseline none, one run, and model gpt-5.6-sol. Execute and grade each prepared run using only the run directory as the positional argument, aggregate using only the iteration directory, and generate review.html the same way. Preserve the reviewable iteration under outputs/release-readiness-workspace/iteration-1/ and do not modify the input fixtures.",
+      "expected_output": "Complete a reproducible manifest-driven paired run, refuse to grade or aggregate failed or incomplete executions, produce structurally valid iteration, grading, benchmark, and static viewer artifacts, and leave the source fixtures unchanged.",
+      "files": [
+        "evals/fixtures/release-readiness/SKILL.md.fixture",
+        "evals/fixtures/release-readiness/evals/evals.json"
+      ],
+      "expectations": [
+        "The evaluation workspace is created by create_eval_workspace.py outside the source skill, any Git repository, and inherited .agents/skills roots, and its workspace marker contains stable identity and original-source metadata rather than iteration-specific settings",
+        "create_iteration.py produces iteration-1/iteration.json with a physical candidate snapshot, a no-skill baseline, model gpt-5.6-sol, one run, new_skill and without_skill configurations, one eval_metadata.json, and both prepared run directories",
+        "new_skill/run-1/.agents/skills/release-readiness is a physical copy of the candidate snapshot with no symlinks, without_skill/run-1 does not install that skill, and both sides derive the same prompt, model, sandbox, inputs, and run count from the manifests",
+        "Both runs retain trace.jsonl, outputs/final.md, outputs/metrics.json, and timing.json; metrics report run_status as completed, and nonzero exits or incomplete traces are not graded or aggregated",
+        "Every completed run has a grading.json that follows the grading schema, and run_grader.py is invoked with only the run directory while deriving eval metadata and model from the iteration",
+        "benchmark.json and benchmark.md come from aggregate_benchmark.py invoked with only iteration-1 and include new_skill, without_skill, exact declared run counts, pass rate, duration, tokens, and delta; generate_review.py is likewise invoked with only iteration-1 and review.html presents both outputs and benchmark data",
+        "The final trace, output, metrics, timing, grading, benchmark, and static review artifacts are preserved under outputs/release-readiness-workspace/iteration-1/, and both input fixtures remain unchanged"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "review-description-triggers",
+      "prompt": "Design description-triggering evals for the attached incident-timeline-writer SKILL.md.fixture template. Generate 20 realistic queries, with 10 positive and 10 negative cases. Negative cases must be near-miss false-trigger scenarios that share terms such as incident, timeline, or report. Save eval_set.json and an interactive review.html generated from the skill-creator assets/eval_review.html template under outputs/description-review/. Let me review them first; do not run the optimization loop or modify the input fixture.",
+      "expected_output": "Generate a balanced, realistic, and discriminating trigger-query set plus an interactive review page that covers implicit positive cases and difficult near-miss negative cases while preserving the original description until user review.",
+      "files": [
+        "evals/fixtures/incident-timeline-writer/SKILL.md.fixture"
+      ],
+      "expectations": [
+        "outputs/description-review/eval_set.json contains exactly 20 objects, each with only a non-empty query and boolean should_trigger, split into exactly 10 true and 10 false cases",
+        "Positive cases cover explicit and implicit requests to build an event timeline from chat records, alerts, and deployment events, with varied lengths, formal and casual phrasing, paths, and context rather than one repeated template",
+        "Negative cases are highly similar neighboring tasks such as extracting timestamps only, writing a status update, analyzing root cause, or preparing a project schedule; they share relevant terminology but do not require an evidence-backed incident timeline",
+        "review.html reuses assets/eval_review.html, embeds the current skill name, original description, and complete query set, and preserves interactions for editing, toggling labels, adding, removing, and exporting evals",
+        "The executor does not run run_loop.py, apply a new description, or modify the input fixture, and it explicitly waits for user review of the exported eval set"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "prepare-manifest-evaluation",
+      "prompt": "Prepare, but do not execute, a manifest-driven paired Codex evaluation for the attached deployment-helper SKILL.md.fixture. Materialize it as a candidate skill under outputs/eval-manifest-plan/candidate/deployment-helper/ without modifying the fixture, and add a minimal evals/evals.json with one realistic deployment-planning eval. Use create_eval_workspace.py and create_iteration.py to prepare a temporary iteration with baseline none, one run, and model gpt-5.6-sol. Save copies of the workspace marker, iteration.json, eval_metadata.json, and a next_commands.json under outputs/eval-manifest-plan/. Each next command must be an argv array for run_test_case.py, run_grader.py, aggregate_benchmark.py, or generate_review.py using only its single run or iteration directory positional argument. Include the completion checks that gate grading and aggregation. The requirements are complete; do not ask follow-up questions, invoke Codex, grade, aggregate, or generate the review page.",
+      "expected_output": "Produce a validated manifest-driven evaluation setup whose mutable round settings live in iteration.json, whose run scripts need only a directory argument, and whose completion gates reject contaminated or incomplete evidence.",
+      "files": [
+        "evals/fixtures/deployment-helper/SKILL.md.fixture"
+      ],
+      "expectations": [
+        "The input fixture remains unchanged and is materialized as outputs/eval-manifest-plan/candidate/deployment-helper/SKILL.md with the deployment-helper name preserved, plus a valid evals/evals.json containing one named eval with prompt and expectations",
+        "The copied workspace marker contains workspace identity and original-source metadata but no candidate snapshot, baseline, model, run count, configuration, prompt, or expectations",
+        "The copied iteration.json records a physical candidate snapshot, a no-skill baseline, model gpt-5.6-sol, one run, new_skill and without_skill configurations, and the declared eval directory",
+        "The copied eval_metadata.json contains the shared prompt and expectations, and the prepared layout contains new_skill/run-1 and without_skill/run-1 directories with identical copied inputs",
+        "next_commands.json uses argv arrays whose only operand after each script path is its run directory for run_test_case.py and run_grader.py or its iteration directory for aggregate_benchmark.py and generate_review.py; it does not repeat skill, protected-source, model, prompt, metadata, output, benchmark, or previous-iteration flags",
+        "The completion checks require completed zero-exit metrics and timing with no isolation violations before grading or aggregation, explain that same-name global skills are matched by frontmatter and audited in the trace, and the executor does not invoke Codex, run_grader.py, aggregate_benchmark.py, or generate_review.py"
+      ]
+    }
+  ]
+}

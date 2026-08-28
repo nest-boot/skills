@@ -14,6 +14,7 @@ Defines the evals for a skill. Located at `evals/evals.json` within the skill di
   "evals": [
     {
       "id": 1,
+      "name": "extract-customer-fields",
       "prompt": "User's example prompt",
       "expected_output": "Description of expected result",
       "files": ["evals/files/sample1.pdf"],
@@ -29,10 +30,80 @@ Defines the evals for a skill. Located at `evals/evals.json` within the skill di
 **Fields:**
 - `skill_name`: Name matching the skill's frontmatter
 - `evals[].id`: Unique integer identifier
+- `evals[].name`: Stable kebab-case eval name used in iteration directory names. Older eval sets may omit it; `create_iteration.py` derives a fallback name.
 - `evals[].prompt`: The task to execute
 - `evals[].expected_output`: Human-readable description of success
 - `evals[].files`: Optional list of input file paths (relative to skill root)
 - `evals[].expectations`: List of verifiable statements
+
+---
+
+## .skill-creator-workspace.json
+
+Created once by `create_eval_workspace.py` at the temporary workspace root. It identifies the workspace and original source skill; iteration-specific choices do not belong here.
+
+```json
+{
+  "schema_version": 1,
+  "skill_name": "example-skill",
+  "source_skill": "/resolved/path/to/example-skill",
+  "source_skill_lexical": "/original/path/to/example-skill",
+  "created_at": "2026-01-15T10:30:00+00:00"
+}
+```
+
+---
+
+## iteration.json
+
+Created by `create_iteration.py` at `<workspace>/iteration-N/iteration.json`. This is the source of truth for every runtime script in that iteration.
+
+```json
+{
+  "schema_version": 1,
+  "iteration": 2,
+  "skill_name": "example-skill",
+  "created_at": "2026-01-15T10:30:00+00:00",
+  "model": "gpt-5.6-sol",
+  "runs": 3,
+  "candidate": {
+    "configuration": "new_skill",
+    "snapshot": "snapshots/new_skill/example-skill"
+  },
+  "baseline": {
+    "kind": "previous",
+    "configuration": "old_skill",
+    "snapshot": "snapshots/old_skill/example-skill",
+    "source_iteration": "iteration-1"
+  },
+  "configurations": ["new_skill", "old_skill"],
+  "previous_iteration": "iteration-1",
+  "evals": [
+    {
+      "id": 1,
+      "name": "extract-customer-fields",
+      "directory": "eval-1-extract-customer-fields"
+    }
+  ]
+}
+```
+
+For a no-skill baseline, use `baseline.kind: "none"`, configuration `without_skill`, and a null snapshot. For an explicit path baseline, use `baseline.kind: "path"`, configuration `old_skill`, a copied snapshot, and the original absolute `source` for provenance and isolation auditing.
+
+---
+
+## eval_metadata.json
+
+Created under each iteration eval directory. The executor reads the prompt and the grader reads the expectations from this shared file, so both configurations use identical task metadata.
+
+```json
+{
+  "eval_id": 1,
+  "eval_name": "extract-customer-fields",
+  "prompt": "User's example prompt",
+  "expectations": ["The output includes X"]
+}
+```
 
 ---
 
@@ -124,11 +195,11 @@ For Codex rubric grading, pass `references/grading.schema.json` to `codex exec -
   "eval_feedback": {
     "suggestions": [
       {
-        "assertion": "The output includes the name 'John Smith'",
+        "expectation": "The output includes the name 'John Smith'",
         "reason": "A hallucinated document that mentions the name would also pass"
       }
     ],
-    "overall": "Assertions check presence but not correctness."
+    "overall": "Expectations check presence but not correctness."
   }
 }
 ```
@@ -230,7 +301,7 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
     "evals_run": [1, 2, 3],
     "runs_per_configuration": 3,
     "run_counts_by_configuration": {
-      "with_skill": {"1": 3, "2": 3, "3": 3},
+      "new_skill": {"1": 3, "2": 3, "3": 3},
       "without_skill": {"1": 3, "2": 3, "3": 3}
     }
   },
@@ -239,7 +310,7 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
     {
       "eval_id": 1,
       "eval_name": "Ocean",
-      "configuration": "with_skill",
+      "configuration": "new_skill",
       "run_number": 1,
       "result": {
         "pass_rate": 0.85,
@@ -262,7 +333,7 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
   ],
 
   "run_summary": {
-    "with_skill": {
+    "new_skill": {
       "pass_rate": {"mean": 0.85, "stddev": 0.05, "min": 0.80, "max": 0.90},
       "time_seconds": {"mean": 45.0, "stddev": 12.0, "min": 32.0, "max": 58.0},
       "tokens": {"mean": 3800, "stddev": 400, "min": 3200, "max": 4100}
@@ -280,7 +351,7 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
   },
 
   "notes": [
-    "Assertion 'Output is a PDF file' passes 100% in both configurations - may not differentiate skill value",
+    "Expectation 'Output is a PDF file' passes 100% in both configurations - may not differentiate skill value",
     "Eval 3 shows high variance (50% ± 40%) - may be flaky or model-dependent",
     "Without-skill runs consistently fail on table extraction expectations",
     "Skill adds 13s average execution time but improves pass rate by 50%"
@@ -298,11 +369,11 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
 - `runs[]`: Individual run results
   - `eval_id`: Numeric eval identifier
   - `eval_name`: Human-readable eval name (used as section header in the viewer)
-  - `configuration`: Must be `"with_skill"` or `"without_skill"` (the viewer uses this exact string for grouping and color coding)
+  - `configuration`: One of the names declared by `iteration.json`, normally `new_skill` paired with `old_skill` or `without_skill`
   - `run_number`: Integer run number (1, 2, 3...)
   - `result`: Nested object with `pass_rate`, `passed`, `total`, `time_seconds`, `tokens`, `errors`
 - `run_summary`: Statistical aggregates per configuration
-  - `with_skill` / `without_skill`: Each contains `pass_rate`, `time_seconds`, `tokens` objects with `mean` and `stddev` fields
+  - Each declared configuration contains `pass_rate`, `time_seconds`, and `tokens` objects with `mean` and `stddev` fields
   - `delta`: Difference strings like `"+0.50"`, `"+13.0"`, `"+1700"`
 - `notes`: Freeform observations from the analyzer
 

@@ -14,7 +14,7 @@ Thank you for improving the guidance used by Nest Boot agents. Contributions sho
 1. Search open and closed Issues and PRs for the skill name and symptom.
 2. Capture a sanitized example showing what the agent did, what it should have done, and the evidence supporting the correction.
 3. Work from an up-to-date `main` on a dedicated branch. Preserve unrelated changes and never push directly to `main`.
-4. Use the project-provided `skill-creator` when creating or substantially restructuring a skill.
+4. Use the project-installed `skill-creator` from `xudongcc/skills` when creating or substantially restructuring a skill.
 
 Python validation requires [PyYAML](https://pyyaml.org/). Install it in your preferred virtual environment if it is not already available.
 
@@ -36,7 +36,7 @@ python3 skills/nest-boot-skill-maintainer/scripts/update_readme.py --repo .
 python3 skills/nest-boot-skill-maintainer/scripts/validate_skills.py --repo .
 ```
 
-Validate the changed skill with the installed OpenAI validator:
+Validate the changed skill with the project-installed validator:
 
 ```bash
 python3 .agents/skills/skill-creator/scripts/quick_validate.py skills/<skill-name>
