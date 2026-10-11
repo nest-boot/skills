@@ -1,11 +1,13 @@
 ---
-name: nest-boot-mikro-orm
-description: 使用 `@nest-boot/mikro-orm` 构建 NestJS 持久化层的通用规范，覆盖 Entity、EntityService、关系、迁移、Seeder、外部供应商中立建模、锁与数据库验证。适用于新增或重构持久化功能，修改表、列、枚举、外键或索引，重命名实体，生成或审查迁移，以及排查 schema drift。
+name: nest-boot-database
+description: 使用 Nest Boot v8 的 `@nest-boot/database` 与 MikroORM 7 构建 NestJS 持久化层，覆盖 Entity、EntityService、关系、原生 RLS、迁移、Seeder、外部供应商中立建模、锁与数据库验证。适用于升级旧数据库包、新增或重构持久化功能、修改表列与约束、注册 Auth 实体、生成或审查迁移，以及排查 schema drift。
 ---
 
 ## 概览
 
-在已经采用 `@nest-boot/mikro-orm` 的 NestJS 应用中，优先复用其 `EntityService`、配置加载与迁移集成，减少重复的数据访问样板。目录、包过滤器、脚本名和数据库部署入口应从宿主代码库识别，不要硬编码某个 monorepo 的约定。
+在已经采用 `@nest-boot/database` 的 NestJS 应用中，优先复用其 `EntityService`、配置加载与迁移集成，减少重复的数据访问样板。目录、包过滤器、脚本名和数据库部署入口应从宿主代码库识别，不要硬编码某个 monorepo 的约定。
+
+v8 的包和模块分别为 `@nest-boot/database`、`DatabaseModule`。先确认 Node.js >=24.21.0、NestJS 12、MikroORM 7.2 与 ESM。装饰器从 `@mikro-orm/decorators/legacy` 导入，普通类型从 `@mikro-orm/core` 导入，SQL 专用 API 从 `@mikro-orm/sql` 或所用驱动入口导入。
 
 新增 Service 数据访问方法前，先检查 `EntityService` 是否已提供相同语义；只有业务规则、跨实体协调或特殊查询确实增加价值时才封装自定义方法。
 
@@ -16,7 +18,7 @@ description: 使用 `@nest-boot/mikro-orm` 构建 NestJS 持久化层的通用�
 
 ## 参考文档
 
-- [MikroORM 模块安装与配置指南](references/install.md) - 说明 `@nest-boot/mikro-orm`、可选请求事务模块与 CLI 配置。
+- [数据库模块安装与配置指南](references/install.md) - 说明 `DatabaseModule.forRoot()`、Auth 实体、原生 session 与 CLI 配置。
 - [EntityService 使用与扩展边界](references/entity-service.md) - 说明内置方法、无语义包装和 `IdOrEntity` 的适用范围。
 - [Entity 字段建模](references/entity.md) - 说明有限集字段、标识符与索引的建模取舍。
 - [MikroORM 迁移 (Migration) 命令指南](references/migration.md) - 详解基于 `pnpm mikro-orm migration:*` 构建的体系里该如何规范使用差异比对、创建迁移记录和正确安全的执行 `up/down` 回滚。

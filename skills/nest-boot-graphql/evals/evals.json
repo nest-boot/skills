@@ -22,6 +22,19 @@
         "使用 @ResolveField 并正确解包或加载关联",
         "使用包含 plan 字段的真实 operation 做运行时验证"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Nest Boot v8 中旧 auth-graphql、file-upload 怎么配置？signUp { user { id } token } 不再可用，createUser 后也拿不到 profile，请给出新 imports 和操作。",
+      "expected_output": "统一 Auth 包、分离上传核心和 GraphQL adapter，使用 v8 payload 并另行查询实体。",
+      "files": [],
+      "expectations": [
+        "使用 @nest-boot/auth，移除 AuthGraphQLModule",
+        "使用 @nest-boot/staged-upload 和 @nest-boot/staged-upload-graphql，正确导入 StagedUploadGraphQLModule 与 GraphQL 类型",
+        "Auth 使用 forRoot/forRootAsync，StagedUpload 核心使用 register/registerAsync 并复用 Storage，只有 GraphQL adapter 直接静态导入",
+        "signUp 查询 id/token，用户写入操作查询 id 后另行查询 profile",
+        "使用 GraphQL/Apollo 14 与 graphiql，保持 ESM 相对导入"
+      ]
     }
   ]
 }

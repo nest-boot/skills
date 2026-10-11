@@ -12,7 +12,8 @@
 
 ```typescript
 // source.entity.ts
-import { Opt, Property, t } from '@mikro-orm/postgresql';
+import { type Opt, t } from '@mikro-orm/core';
+import { Property } from '@mikro-orm/decorators/legacy';
 import { Field } from '@nest-boot/graphql';
 
 // 错误：使用了硬编码默认值字符串与散列字符类型
@@ -27,10 +28,11 @@ status: Opt<string> = 'processing';
 
 ```typescript
 // <module-root>/source/source.entity.ts
-import { Enum, Opt } from '@mikro-orm/postgresql';
+import type { Opt } from '@mikro-orm/core';
+import { Enum } from '@mikro-orm/decorators/legacy';
 import { Field } from '@nest-boot/graphql';
 
-import { SourceStatus } from './enums/source-status.enum';
+import { SourceStatus } from './enums/source-status.enum.js';
 
 @Field(() => SourceStatus)
 @Enum({ items: () => SourceStatus, default: SourceStatus.PROCESSING })

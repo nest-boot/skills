@@ -1,6 +1,6 @@
 ---
 name: nest-boot-module-design
-description: 使用 NestJS 与 `@nest-boot` 新增、拆分或重构业务模块时的目录、边界、文件和类型组织规范。适用于创建新领域，安排 Entity、Service、Resolver、Controller、DTO/Input、interface/type 或 enum，拆分职责混杂的大文件，判断公共基础设施与业务代码的位置，以及沿用宿主项目的模块根目录和命名约定；领域整体改名应使用 `nest-boot-domain-renaming`。
+description: 使用 Nest Boot v8 与 NestJS 12 新增、升级、拆分或重构业务模块的目录、边界、文件和类型组织规范。适用于 v8 ESM 与包迁移、创建新领域、安排 Entity/Service/Resolver/Controller/DTO/Input、拆分大文件和共享类型，以及确定公共基础设施与业务代码的位置；领域整体改名使用 `nest-boot-domain-renaming`。
 ---
 
 ## 概览
@@ -18,13 +18,16 @@ description: 使用 NestJS 与 `@nest-boot` 新增、拆分或重构业务模块
 
 ## 核心边界
 
+- 新应用或 v8 升级先核对 Node.js >=24.21.0、NestJS 12、原生 ESM 和 peer 版本；读取 [v8 使用与迁移](references/v8-usage.md)，不要直接套用 v7/beta 的包名、Auth 实体和 RLS API。
+
 - 模块根目录来自宿主项目证据，不硬编码 `src/app`、`src/modules` 或某个 workspace 包名。
 - `interface`/`type` 只存在于编译期；需要 GraphQL、class-validator、class-transformer 或 Swagger 元数据时使用 class。
-- 共享 enum 只保留一份源定义。GraphQL 注册交给 `nest-boot-graphql`，数据库映射与迁移交给 `nest-boot-mikro-orm`。
+- 共享 enum 只保留一份源定义。GraphQL 注册交给 `nest-boot-graphql`，数据库映射与迁移交给 `nest-boot-database`。
 - 文件分离不等于每个符号一个文件。按复用范围、运行时职责和宿主惯例决定是否提取。
 - 本技能不负责跨层整体改名；实体、表、GraphQL、客户端与迁移同步改名使用 `nest-boot-domain-renaming`。
 
 ## 参考文档
 
+- [v8 使用与迁移](references/v8-usage.md) — 运行时、ESM、包重命名、Auth/Member/API key 和数据升级边界。
 - [模块边界与目录结构](references/project-structure.md) — 发现宿主布局、安排模块文件和控制公开表面。
 - [Type、Interface、DTO 与 Enum](references/types-and-enums.md) — 编译期类型、运行时模型和共享有限集的提取规则。

@@ -1,11 +1,13 @@
 ---
-name: nest-boot-bullmq
-description: 使用 `@nest-boot/bullmq` 构建和管理 NestJS 异步任务队列的通用规范。适用于创建队列、定义 Job payload、注册 Processor、投递任务或排查队列依赖注入，重点保证名称与载荷类型安全、注册关系一致和处理器职责清晰。
+name: nest-boot-queue
+description: 使用 Nest Boot v8 的 `@nest-boot/queue` 与 BullMQ 构建和管理 NestJS 异步任务队列。适用于迁移旧队列包、创建队列、定义 Job payload、注册 Processor 或事件处理器、投递任务、持久化作业或排查依赖注入，重点保证名称与载荷类型安全、RequestContext 生命周期和注册关系一致。
 ---
 
 ## 概览
 
-`@nest-boot/bullmq` 封装了基于 Redis 的 BullMQ。使用时应让队列名称、Job 名称和 payload 在投递方与消费方之间形成类型闭环，减少“魔法字符串”和宽泛载荷导致的运行时错误。
+`@nest-boot/queue` 封装了基于 Redis 的 BullMQ。使用时应让队列名称、Job 名称和 payload 在投递方与消费方之间形成类型闭环，减少“魔法字符串”和宽泛载荷导致的运行时错误。
+
+v8 使用 `QueueModule` 和可选的 `@nest-boot/queue-database` / `QueueDatabaseModule`。运行时为 Node.js >=24.21.0、NestJS 12、原生 ESM；上游 `bullmq` 和 `@nestjs/bullmq` 包名保留。
 
 ## 核心设计原则
 

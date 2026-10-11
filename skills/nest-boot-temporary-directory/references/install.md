@@ -5,10 +5,10 @@
 安装 package 及其 request-context peer dependency：
 
 ```bash
-pnpm add @nest-boot/temporary-directory @nest-boot/request-context
+pnpm add @nest-boot/temporary-directory@^8 @nest-boot/request-context@^8
 ```
 
-选择版本时先检查 package 的 `engines` 和 `peerDependencies`。`@nest-boot/temporary-directory` 7.x 要求 Node.js `>=24.4.0`、NestJS 11 和兼容的 `@nest-boot/request-context` 7.x；workspace 中应解析到兼容的 request-context 实例，避免上下文状态来自不同 package 副本。
+选择版本时先检查 package 的 `engines` 和 `peerDependencies`。v8 要求 Node.js `>=24.21.0`、NestJS 12、原生 ESM 和兼容的 `@nest-boot/request-context` 8.x；workspace 中应解析到兼容的 request-context 实例，避免上下文状态来自不同 package 副本。
 
 ## 注册模块
 
@@ -42,4 +42,4 @@ await RequestContext.run(new RequestContext({ type: 'job' }), async () => {
 });
 ```
 
-不要只在 `RequestContext.run()` 中创建目录后把路径返回给外部使用；callback 结束时目录会被清理。使用 `@nest-boot/bullmq` 等已提供 RequestContext 的入口时复用其生命周期，不要嵌套一个只为绕过报错的短生命周期上下文。
+不要只在 `RequestContext.run()` 中创建目录后把路径返回给外部使用；callback 结束时目录会被清理。使用 `@nest-boot/queue` 等已提供 RequestContext 的入口时复用其生命周期，不要嵌套一个只为绕过报错的短生命周期上下文。

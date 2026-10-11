@@ -3,10 +3,12 @@
 ## 1. 安装依赖
 
 ```bash
-pnpm add @nest-boot/logger
+pnpm add @nest-boot/logger@^8
 ```
 
 ## 2. 全局注册 LoggerModule
+
+v8 使用 Node.js >=24.21.0、NestJS 12 和原生 ESM。检查 peer dependencies，并在 TypeScript 相对导入中使用 `.js` 扩展名。
 
 在应用组合根或已有的全局基础设施模块中导入 `LoggerModule`，让业务模块通过依赖注入使用日志器。模块名称不必固定为 `CommonModule`：
 
@@ -32,7 +34,7 @@ export class LoggingInfrastructureModule {}
 import { Logger } from '@nest-boot/logger';
 import { NestFactory } from '@nestjs/core';
 
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

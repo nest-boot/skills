@@ -1,5 +1,5 @@
 {
-  "skill_name": "nest-boot-mikro-orm",
+  "skill_name": "nest-boot-database",
   "evals": [
     {
       "id": 1,
@@ -21,6 +21,18 @@
         "ProviderKind 使用独立 enum 并由 @Enum 映射",
         "providerCatalogItemId 位于目录映射，providerInstanceId 位于业务实例",
         "同一能力在不同供应商下使用独立 provider binding 或目录记录"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "一个旧 Nest Boot 项目升级 v8，仍用 MikroOrmModule、请求事务包、从 postgresql 导入 Entity，并在 CLI ignoreSchema 中排除 auth。给出可用的运行时及迁移 CLI 配置，不执行数据库变更。",
+      "expected_output": "改为 DatabaseModule.forRoot/forRootAsync、MikroORM 7 legacy decorators 与 ESM；运行时/CLI 都注册 authEntities；显式业务事务代替旧请求事务模块。",
+      "files": [],
+      "expectations": [
+        "使用 @nest-boot/database 与 DatabaseModule.forRoot 或 forRootAsync，保留上游 @mikro-orm 包名",
+        "装饰器来自 @mikro-orm/decorators/legacy，TS 相对导入有 .js，使用 Node 24.21+/NestJS 12/MikroORM 7.2",
+        "运行时和 CLI 的 entities 与 entitiesTs 都包含 Auth 的 entities 数组，不用 ignoreSchema 隐藏鉴权实体",
+        "不安装旧请求事务包，不继承 BaseUser，不在认证中途切换活动事务的 session"
       ]
     }
   ]

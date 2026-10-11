@@ -56,7 +56,7 @@ async createProject(tenant: Tenant, input: CreateProjectInput) {
 }
 ```
 
-HTTP/GraphQL 请求和 `@nest-boot/bullmq` Processor 会建立 RequestContext。独立脚本、原生 BullMQ worker 或其他后台入口中，先使用宿主应用的 RequestContext helper 建立上下文；否则不要调用 `assign()`，改为在单次日志调用中传入安全字段。
+HTTP/GraphQL 请求和 `@nest-boot/queue` Processor 会建立 RequestContext。独立脚本、原生 BullMQ worker 或其他后台入口中，先使用宿主应用的 RequestContext helper 建立上下文；否则不要调用 `assign()`，改为在单次日志调用中传入安全字段。
 
 ### 3. 按级别输出日志
 
@@ -78,7 +78,7 @@ this.logger.error('数据库连接失败', { error: err.message });
 ```typescript
 import { EntityManager } from '@mikro-orm/postgresql';
 import { Logger } from '@nest-boot/logger';
-import { EntityService } from '@nest-boot/mikro-orm';
+import { EntityService } from '@nest-boot/database';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()

@@ -2,20 +2,20 @@
 
 在需要为检索增强生成 (RAG) 或语义搜索构建索引的实体中，可以使用 PostgreSQL 的 `pgvector` 扩展。
 
-在 `@nest-boot/mikro-orm` 中使用向量字段时，先固定模型维度与距离度量，再根据数据规模和查询计划决定索引。
+在 `@nest-boot/database` 中使用向量字段时，先固定模型维度与距离度量，再根据数据规模和查询计划决定索引。
 
 ## 1. 字段类型声明与维度约束
 
-TypeScript 的 `number[]` 本身不会提供 PostgreSQL vector 列类型。使用 `@nest-boot/mikro-orm` 的 `VectorType`，并传入与 embedding 模型输出一致的维度。
+TypeScript 的 `number[]` 本身不会提供 PostgreSQL vector 列类型。使用 `@nest-boot/database` 的 `VectorType`，并传入与 embedding 模型输出一致的维度。
 
 ### ✅ 规范范例：1536维度的声明
 
 ```typescript
 // source-chunk.entity.ts
-import { Property } from '@mikro-orm/postgresql';
+import { Property } from '@mikro-orm/decorators/legacy';
 
 // 重点1：导入正确的环境拓展类型
-import { VectorType } from '@nest-boot/mikro-orm';
+import { VectorType } from '@nest-boot/database';
 
 export class SourceChunk {
   // 重点2：传入与所选 embedding 模型输出一致的确切维度
@@ -32,7 +32,8 @@ B-Tree 不能加速向量距离查询。数据量和延迟目标需要近似最�
 
 ```typescript
 // 在顶部连带导入 raw 和 Index
-import { Entity, Index, raw } from '@mikro-orm/postgresql';
+import { raw } from '@mikro-orm/core';
+import { Entity, Index } from '@mikro-orm/decorators/legacy';
 
 // 直接挂载于 class 顶部，利用 expression 进行底层越级改写
 @Entity()

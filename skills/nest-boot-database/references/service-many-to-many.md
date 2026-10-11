@@ -7,7 +7,7 @@
 当关联方法需要同时接受主键与已加载实体时，使用 `IdOrEntity<T>`；如果边界只允许主键，保留 ID 类型更容易验证权限与来源：
 
 ```typescript
-import { IdOrEntity } from '@nest-boot/mikro-orm';
+import type { IdOrEntity } from '@nest-boot/database';
 
 async addSource(
   notebookIdOrEntity: IdOrEntity<Notebook>,

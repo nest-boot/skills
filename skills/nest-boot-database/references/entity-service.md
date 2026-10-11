@@ -82,7 +82,7 @@ const chunk = await this.sourceChunkService.create({
 
 #### 范例：
 ```typescript
-import { EntityService, IdOrEntity } from '@nest-boot/mikro-orm';
+import { EntityService, type IdOrEntity } from '@nest-boot/database';
 
 @Injectable()
 export class NotebookService extends EntityService<Notebook> {

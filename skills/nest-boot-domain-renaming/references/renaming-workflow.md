@@ -23,7 +23,7 @@
 2. TypeScript：类、构造参数、变量、方法、导入路径、DI token、enum 和注释；
 3. GraphQL：对象类型、Query/Mutation、Input 字段、生成 schema、客户端 documents 与生成类型；
 4. MikroORM：实体名、表、列、关系、FK、索引、唯一约束、check constraint 和 migration；
-5. RLS：`@Policy` metadata、policy 名、上下文字段和生成 SQL；
+5. RLS：`@Entity({ policies })` metadata、policy 名、`check` / `using` 引用的列、session variables 和生成 SQL；
 6. 异步与集成：队列/Job 名、webhook、scheduler、Seeder、缓存 key、事件和配置；
 7. 客户端与运维：组件、hooks、路由、监控标签、部署配置和文档。
 
@@ -35,7 +35,7 @@
 2. 修改 Entity、enum、Module 等源定义；
 3. 更新 Service、Resolver/Controller、DI 和内部消费者；
 4. 使用 `nest-boot-graphql` 更新 schema 源和客户端 operation；
-5. 使用 `nest-boot-mikro-orm` 从新 metadata 生成 migration；
+5. 使用 `nest-boot-database` 从新 metadata 生成 migration；
 6. 使用 `nest-boot-row-level-security` 检查 policy metadata 和 SQL；
 7. 更新队列、webhook、scheduler、Seeder、配置、客户端和文档；
 8. 重新生成 schema、客户端类型和其他派生工件。

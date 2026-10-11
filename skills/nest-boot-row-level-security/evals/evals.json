@@ -3,24 +3,37 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "给 tenant_document 增加 tenant RLS，请配置装饰器、生成迁移并验证空上下文。",
-      "expected_output": "以 Entity RLS 装饰器为真源，由 MikroORM 生成迁移，并验证空、正确和错误 tenant 上下文。",
+      "prompt": "Nest Boot v8/MikroORM 7.2 中给 tenant_document 增加 tenant RLS，请给出 Entity、迁移与空上下文验证方案，不执行数据库操作。",
+      "expected_output": "以原生 Entity policies 为源，使用官方 Migration，并验证空、正确和错误租户的读写及真实受限角色。",
       "files": [],
       "expectations": [
-        "RLS policy 由 Entity 装饰器配置，不只手写在 migration SQL",
+        "用 @mikro-orm/decorators/legacy 的 @Entity({ policies }) 配置，使用 check 与小写 command，不调用旧 @Policy",
         "可选上下文使用 nullif(current_setting(..., true), '') 防止空字符串 cast 错误",
         "验证空上下文无数据泄漏，正确 tenant 可见，其他 tenant 不可见"
       ]
     },
     {
       "id": 2,
-      "prompt": "BullMQ 任务中处理 tenant 资源时被 RLS 拦截，应该全局关闭 RLS 吗？",
-      "expected_output": "不全局禁用 RLS，在最小 RequestContext.child 范围中设置 tenant 或明确的局部绕过。",
+      "prompt": "Nest Boot v8 Queue 任务处理 tenant 资源时被 RLS 拦截，当前已有活动事务。可以全局关闭 RLS 或在 RequestContext.child 里改角色解决吗？",
+      "expected_output": "不全局关闭，先解释 child 不等于 EM fork、活动事务不能换 session；把授权和完整 session 建立移到事务之前。",
       "files": [],
       "expectations": [
-        "不修改全局数据库或应用 RLS 开关",
-        "在单个 job 的 RequestContext.child 内传入精确 tenant 上下文",
-        "如需 bypass，限定在最小操作范围并记录安全的审计信息"
+        "不修改全局 RLS 或父 EM 的 session",
+        "说明 RequestContext.child 本身不创建新的 EntityManager，需要独立 fork 并绑定",
+        "已有事务中不切换 session，也不静默用另一个 fork 拆散原子性",
+        "授权并设置完整 role/variables 后再开启事务；清空 session 不自动获得 BYPASSRLS"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "一个已上线的应用升级 v8/MikroORM 7，旧 RLS policy 由手写 SQL 创建。migration:create 现在想删除所有策略；有服务账户但没有 user。怎么安全迁移？",
+      "expected_output": "把现有 policy 纳入 metadata 或明确暂不接管，保留数据迁移，正确使用 app.*.id 与权限层边界。",
+      "files": [],
+      "expectations": [
+        "先接管已有 policy 到 Entity metadata 或评估 ignorePolicies，不能靠 safe 模式长期保留",
+        "使用官方 Migration/Migrator，并单独配置受限角色与 GRANT",
+        "不复制示例的空库 baseline 覆盖历史迁移",
+        "服务账户允许只有 member，无 member 的登录用户也存在；使用 app.user.id/app.workspace.id/app.member.id 并在 Service 执行动作授权"
       ]
     }
   ]

@@ -15,7 +15,7 @@ description: 使用 `@nest-boot/logger` 在 NestJS 可注入类中记录结构�
 1. **业务类导入 `@nest-boot/logger` 的 `Logger`。** 它与 `@nestjs/common` 的同名类不同，支持结构化绑定与 pino 序列化。
 2. **通过构造函数依赖注入获取 Logger 实例。** 不要手动 `new Logger()`。
 3. **默认使用自动上下文。** Logger 会从 NestJS `INQUIRER` 获取注入类名；只有动态 Processor 等无法正确推断时才调用 `setContext()` 覆盖。
-4. **只在活动 RequestContext 中使用 `assign`。** HTTP/GraphQL 请求和 `@nest-boot/bullmq` Processor 已建立上下文；其他后台入口应先建立 RequestContext，或把字段附在单条日志调用上。
+4. **只在活动 RequestContext 中使用 `assign`。** HTTP/GraphQL 请求和 `@nest-boot/queue` Processor 已建立上下文；其他后台入口应先建立 RequestContext，或把字段附在单条日志调用上。
 5. **只记录可审计标识，不记录凭证。** API key、Authorization、Cookie、私钥、完整 webhook body 和供应商签名不得进入日志；使用 requestId、eventId、resourceId、tenantId 等安全标识定位问题。
 
 ## 参考文档

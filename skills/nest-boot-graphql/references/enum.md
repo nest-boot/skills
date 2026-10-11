@@ -39,10 +39,11 @@ registerEnumType(SourceStatus, {
 ```typescript
 // source.entity.ts
 
-import { Enum, Opt } from '@mikro-orm/postgresql';
+import type { Opt } from '@mikro-orm/core';
+import { Enum } from '@mikro-orm/decorators/legacy';
 import { Field } from '@nest-boot/graphql';
 
-import { SourceStatus } from './enums/source-status.enum';
+import { SourceStatus } from './enums/source-status.enum.js';
 
 // ...
 export class Source {

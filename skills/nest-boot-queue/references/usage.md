@@ -8,7 +8,7 @@
 
 **`types/source-queue-job.type.ts`**
 ```typescript
-import { Job } from 'bullmq';
+import type { Job } from 'bullmq';
 
 // 定义每一项专属行动的数据结构与固定名
 export type SourceQueueProcessJob = Job<{ sourceId: string }, void, 'process'>;
@@ -24,15 +24,15 @@ export type SourceQueueJob = SourceQueueProcessJob | SourceQueueDeleteJob;
 
 **`source.service.ts`**
 ```typescript
-import { InjectQueue } from '@nest-boot/bullmq';
+import { InjectQueue } from '@nest-boot/queue';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { EntityService } from '@nest-boot/mikro-orm';
+import { EntityService } from '@nest-boot/database';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-import { SOURCE_QUEUE_NAME } from './source.constants';
-import { SourceQueueJob } from './types/source-queue-job.type';
-import { Source } from './source.entity';
+import { SOURCE_QUEUE_NAME } from './source.constants.js';
+import type { SourceQueueJob } from './types/source-queue-job.type.js';
+import { Source } from './source.entity.js';
 
 @Injectable()
 export class SourceService extends EntityService<Source> {
@@ -70,15 +70,15 @@ export class SourceService extends EntityService<Source> {
 
 **`processors/source.processor.ts`**
 ```typescript
-import { Processor, WorkerHost } from '@nest-boot/bullmq';
+import { Processor, WorkerHost } from '@nest-boot/queue';
 import { Logger } from '@nest-boot/logger';
 
-import { SOURCE_QUEUE_NAME } from '../source.constants';
-import {
+import { SOURCE_QUEUE_NAME } from '../source.constants.js';
+import type {
   SourceQueueDeleteJob,
   SourceQueueJob,
   SourceQueueProcessJob,
-} from '../types/source-queue-job.type';
+} from '../types/source-queue-job.type.js';
 
 @Processor(SOURCE_QUEUE_NAME) // 利用统一名称约束
 export class SourceProcessor extends WorkerHost {
@@ -90,7 +90,7 @@ export class SourceProcessor extends WorkerHost {
   // 接管强类型载体输入：只负责结构路由与日志注入
   async process(job: SourceQueueJob) {
     // 注入 Job 相关的全链路追踪标识
-    this.logger.assign({ jobId: job.id, jobName: job.name, jobData: job.data });
+    this.logger.assign({ jobId: job.id, jobName: job.name, sourceId: job.data.sourceId });
 
     switch (job.name) {
       case 'process': {
@@ -103,9 +103,6 @@ export class SourceProcessor extends WorkerHost {
         return;
       }
 
-      default: {
-        this.logger.warn('未知的任务类型', { name: job.name });
-      }
     }
   }
 
@@ -129,4 +126,10 @@ export class SourceProcessor extends WorkerHost {
 }
 ```
 
-`@nest-boot/bullmq` 的 `@Processor` 会为每个 job 建立 `RequestContext`，因此处理器内可安全使用 `Logger.assign()` 绑定 job 级字段。保持 `process` 只负责路由，让具体处理方法接收缩窄后的 Job 类型。
+`@nest-boot/queue` 的 `@Processor` 会为每个 job 建立 `RequestContext`，因此处理器内可安全使用 `Logger.assign()` 绑定 job 级字段。保持 `process` 只负责路由，让具体处理方法接收缩窄后的 Job 类型。
+
+持久化在队列中的数据不会经过 TypeScript 验证；外部 producer、旧任务或不可信 payload 仍需在入口做运行时校验，不把类型联合当成安全边界。
+
+## 4. 事件回调也需要上下文
+
+v8 的 `OnWorkerEvent`、`OnQueueEvent` 从 `@nest-boot/queue` 导入。它们包装事件回调并建立自己的 RequestContext；上游同名装饰器不提供 Nest Boot 的生命周期。事件回调并不继承原 HTTP 用户/成员身份，需要业务查询时从可信 job 数据重新授权并设置精确 scope。只记录 job/resource 标识，不记录完整 payload。

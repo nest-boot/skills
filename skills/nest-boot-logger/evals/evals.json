@@ -22,6 +22,17 @@
         "不直接展开可能包含请求配置或 header 的 error 对象",
         "记录 eventId、resourceId、provider 和 failureKind 等可审计安全字段"
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "在 Nest Boot v8 的 ESM 应用中接入结构化 Logger，SourceService 继承 EntityService，Queue Processor 里记录任务标识。给出 imports 和上下文注意事项。",
+      "expected_output": "使用 v8 database/queue 入口和 ESM .js 路径，DI Logger 只绑定安全字段。",
+      "files": [],
+      "expectations": [
+        "EntityService 来自 @nest-boot/database，队列入口来自 @nest-boot/queue",
+        "相对导入使用 .js，DI Logger 保留运行时 value import",
+        "assign 只在活动 RequestContext 中使用且不记录完整 job payload"
+      ]
     }
   ]
 }

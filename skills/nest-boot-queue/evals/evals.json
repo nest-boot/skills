@@ -1,5 +1,5 @@
 {
-  "skill_name": "nest-boot-bullmq",
+  "skill_name": "nest-boot-queue",
   "evals": [
     {
       "id": 1,
@@ -21,6 +21,19 @@
         "jobId 使用稳定领域前缀且不是纯整数",
         "Processor 使用 Logger.assign 记录 jobId、jobName 和安全资源标识",
         "不把完整 payload、凭证或敏感第三方载荷写入日志"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "升级到 Nest Boot v8 后，旧 BullModule 和 BullMQMikroORMModule 要怎么替换？completed 事件里要写数据库和创建临时目录，请给出注册与上下文处理方式。",
+      "expected_output": "使用 QueueModule、QueueDatabaseModule 和 Nest Boot 事件装饰器，继承 JobEntity 并注册具体实体，在事件自己的上下文中显式建立授权范围。",
+      "files": [],
+      "expectations": [
+        "使用 @nest-boot/queue 的 QueueModule 和 @nest-boot/queue-database 的 QueueDatabaseModule",
+        "保留 bullmq 与 @nestjs/bullmq 上游包名",
+        "OnWorkerEvent/OnQueueEvent 从 @nest-boot/queue 导入，解释事件有独立 RequestContext",
+        "从 @nest-boot/queue-database 导入 JobEntity，派生具体实体并通过 QueueDatabaseModule.forRoot({ jobEntity }) 注册，不虚构包导出的具体 Job 实体",
+        "具体作业实体进入运行时和 CLI 发现，不假定原 HTTP 用户/member 自动传播到 job 或事件"
       ]
     }
   ]

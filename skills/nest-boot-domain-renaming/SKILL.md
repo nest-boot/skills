@@ -19,7 +19,7 @@ description: 在 NestJS 与 `@nest-boot` 应用中执行跨层领域、实体、
 ## 专项技能协作
 
 - GraphQL 类型、字段、Input、operation 和 schema 验证使用 `nest-boot-graphql`。
-- Entity、表列、约束、索引、数据搬迁与 migration 使用 `nest-boot-mikro-orm`。
+- Entity、表列、约束、索引、数据搬迁与 migration 使用 `nest-boot-database`。
 - Policy metadata、policy 名、上下文和 PostgreSQL 行为使用 `nest-boot-row-level-security`。
 - 文件落点与新模块结构使用 `nest-boot-module-design`。
 

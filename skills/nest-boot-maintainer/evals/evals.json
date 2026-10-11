@@ -48,6 +48,18 @@
         "停止公开 Issue/PR，即使用户要求立即公开",
         "仅通过维护者确认的私密安全渠道报告，并保留最少必要证据"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "准备一个针对 Nest Boot v8 main 的 database 修复 PR。源码暂不改，只列出核对配置、验证、提交版本说明和正式发布的具体流程；旧清单还写 nx、Jest 和 typedoc:check。",
+      "expected_output": "核对 Turborepo/Changesets 配置，用 Vitest/ESLint-JSDoc 和消费者验证，changeset 驱动版本 PR 与 OIDC 发布。",
+      "files": [],
+      "expectations": [
+        "读取 package.json、turbo.json、.changeset/config.json 和当前 workflows",
+        "使用 pnpm turbo 或 pnpm exec turbo 的 build/lint 与包内 Vitest，不继续执行 Nx/Jest/TypeDoc 命令",
+        "公开包修复包含 changeset；工具/文档变更可用 empty changeset；Conventional Commit 不替代版本声明",
+        "说明 main version PR 合并后验证打包并由独立 OIDC job 发布，不直接推送 main 或执行未授权发布"
+      ]
     }
   ]
 }

@@ -43,4 +43,4 @@ export enum SourceStatus {
 - Entity、GraphQL 和客户端生成类型应追溯到同一语义来源，不在多层手写不同列表；
 - 开放且经常新增的供应商、模型或目录数据通常不适合 enum，应按持久化建模规则处理。
 
-将 enum 暴露到 GraphQL 时使用 `nest-boot-graphql` 的注册规则；映射到 MikroORM 列、约束或迁移时使用 `nest-boot-mikro-orm`。本技能只负责源定义的位置、命名和复用边界。
+将 enum 暴露到 GraphQL 时使用 `nest-boot-graphql` 的注册规则；映射到 MikroORM 列、约束或迁移时使用 `nest-boot-database`。本技能只负责源定义的位置、命名和复用边界。
