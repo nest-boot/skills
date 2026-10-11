@@ -36,6 +36,30 @@
         "状态 enum 只有一份源定义，默认键值一致且不复制字面量",
         "GraphQL enum 注册和 MikroORM 映射分别路由到对应专项 skill"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "把一个 v7 Nest Boot 服务升级到 v8，原来 CommonJS，依赖 mikro-orm/bullmq/file-upload/auth-graphql 的 Nest Boot 包。如何更新运行时、包和模块？只给迁移方案。",
+      "expected_output": "提供 v8 ESM 与依赖基线、准确的包/模块替换、原生 RLS 和数据保留方案。",
+      "files": [],
+      "expectations": [
+        "要求 Node >=24.21.0、NestJS 12、MikroORM 7.2 和兼容的 GraphQL/BullMQ peers",
+        "使用 type: module、NodeNext 和相对 .js 导入，不保留 require 入口假设",
+        "正确区分 Nest Boot database/queue 改名与上游 @mikro-orm、bullmq 包名",
+        "不把示例的空库 migration baseline 覆盖现有业务库历史"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "v8 服务账户没有 user，却需要访问 workspace 数据。MemberApiKey 创建时指定什么？permissions: [] 和 allowedPermissions: [] 相同吗？另有普通登录用户没选 workspace。",
+      "expected_output": "以 Member/MemberApiKey 区分工作区身份、准确说明空权限与 allowlist 差异，承认登录用户可以没有 member。",
+      "files": [],
+      "expectations": [
+        "用 memberId 创建 MemberApiKey，服务账户是 Member 的 SERVICE_ACCOUNT 类型且可没有 user",
+        "key 的 permissions: [] 不额外限制，非空权限与 user/member 权限取交集；创建还受签发者与目标主体授权上限约束",
+        "allowedPermissions: [] 表示不允许授予权限，不能解读成无限制",
+        "app.member.id 不是所有登录请求必有，数据库使用 app.user.id/app.workspace.id/app.member.id 而不传应用权限"
+      ]
     }
   ]
 }

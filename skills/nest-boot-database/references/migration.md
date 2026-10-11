@@ -5,8 +5,8 @@
 
 ## 生成流程
 
-1. 完成 Entity、Enum、关系、Index、Check、Unique 与 RLS `@Policy`
-   装饰器修改。
+1. 完成 Entity、Enum、关系、Index、Check、Unique 与原生 RLS
+   `@Entity({ policies })` metadata 修改。
 2. 准备一个结构与当前主线迁移一致的 disposable PostgreSQL。不要对生产库
    运行 `migration:create`，也不要用含有个人开发漂移的长期数据库生成。
 3. 检查目标应用的 `package.json`、workspace 配置和现有 CI 命令，使用宿主代码库定义的迁移生成脚本。若没有包装脚本，再使用 MikroORM CLI。例如：
@@ -22,7 +22,9 @@ pnpm mikro-orm migration:create
 5. 审查完整 `up()` 与 `down()`：表、列、默认值、枚举约束、FK、索引、
    unique/check、RLS policy 和依赖表改名都必须闭环。
 
-不要手写一份迁移来代替生成器。只有在通过 metadata、生成 SQL 和实测证明
+表结构与 policy 不要手写一份迁移来代替生成器。角色、GRANT、扩展与数据搬迁
+等 metadata 不能完整表达的基础设施行为，可以使用单独审查的手写迁移。
+只有在通过 metadata、生成 SQL 和实测证明
 生成器遗漏了不可表达或回滚所需的行为后，才允许在生成文件上做最小、带
 说明的修正；例如生成的 `down()` 未恢复旧表原有 RLS。修正后仍要保留可
 识别的生成主体，并重新跑双向验证。
@@ -41,14 +43,18 @@ pnpm mikro-orm migration:create
 
 ## RLS 与迁移
 
-RLS 的源定义必须位于 Entity 的 `@Policy` 装饰器。先修改装饰器，再生成
-继承 `RowLevelSecurityMigration` 的迁移；不要只在迁移中手写最终 policy。
+RLS 的源定义位于 `@Entity({ policies })`，原生配置使用 `check`、小写
+`command` / `type`。先更新 metadata，再用官方 `@mikro-orm/migrations`
+的 `Migration` / `Migrator` 生成和执行迁移，不使用旧自定义 RLS migration。
+
+升级已有数据库时，先把已有 policy 纳入 metadata，避免原生 introspection
+把缺失定义当成待删除策略。角色、GRANT 与 RLS 是独立层次，必须分别验证。
 
 对可选 request context 使用自定义表达式时，注意 PostgreSQL
 `current_setting(..., true)` 可能返回空字符串。向 bigint 转换前应保护：
 
 ```sql
-nullif(current_setting('app.tenant_id', true), '')::bigint
+nullif(current_setting('app.tenant.id', true), '')::bigint
 ```
 
 同时审查 `down()` 是否恢复旧 policy，以及生成器在删除最后一条 policy 时
@@ -79,3 +85,6 @@ pnpm mikro-orm seeder:run
 禁止使用 `migration:fresh`、递归删除迁移目录或 Git 强制恢复来“清理”用户
 工作区。若确实要重做未提交迁移，先确认这些文件只属于当前任务，并通过
 迁移 down 回到已知基线后重新生成。
+
+Nest Boot v8 示例的 init + schema baseline 仅供新数据库，不是 v7/旧 beta
+业务库的数据升级路径。保留现有迁移历史，单独设计重命名、数据转换和回滚。

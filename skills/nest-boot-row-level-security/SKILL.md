@@ -1,135 +1,103 @@
 ---
 name: nest-boot-row-level-security
-description: 使用 `@nest-boot/row-level-security` 新增、重构、审查或排查实体 Policy、RowLevelSecurity 上下文、`RequestContext.child` 局部 RLS 绕过、MikroORM 迁移或 PostgreSQL RLS 行为的通用规范。
+description: 在 Nest Boot v8、@nest-boot/database 与 MikroORM 7.2 中设计、迁移、审查和验证 PostgreSQL/PGlite 原生 RLS。适用于 Entity policies、session role/variables、app.member.id、事务边界、受控 fork、后台任务租户隔离，以及从已移除的 @nest-boot/row-level-security 迁移。
 ---
 
-# nest-boot Row Level Security
+# Nest Boot v8 原生 RLS
 
-## 概览
+v8 使用 MikroORM 的 `@Entity({ policies })` 与 EntityManager session。旧 `@nest-boot/row-level-security`、`@Policy`、`RowLevelSecurity`、自定义 driver 和 `RowLevelSecurityMigration` 已移除；保留本 skill 名称仅为了安装兼容。
 
-用简单实体策略表达稳定的归属规则，把例外查询流程放在范围很小的业务代码中。RLS 应描述长期成立的表访问边界，不要承载一次性 token、hash、邀请链接等临时流程。
+## Policy 与数据库角色
 
-## Policy 设计
+- 用 Entity 的 `policies` 作为源定义，配置 `name`、`command`、`roles`、`using`、`check` 和 `type`。原生属性是 `check`，不是旧 `withCheck`；command/type 是小写字面量，例如 `select`、`all`、`restrictive`。
+- 一个或多个 policy 会默认启用 RLS；必要时显式设置 `rowLevelSecurity: true` 或 `'force'`。SQL 权限与 RLS 是两层约束，roles 和 GRANT 要由部署/初始化迁移单独配置；policy 不会创建角色或授予表权限。
+- 默认 permissive policies 以 OR 合并；restrictive policies 与允许集合以 AND 合并。显式选择命令，避免把只读规则意外扩展到 `all`。
+- 表所有者通常绕过 RLS，superuser/BYPASSRLS 也可绕过；业务验证使用真实受限角色。不要以管理员连接的成功查询证明隔离有效。
+- RLS 表达稳定的行归属。动作权限、API-key 权限交集与可写字段继续由 Service/Ability 校验，不能只靠一条 workspace policy。
 
-- 优先为直接归属字段或关联使用 `@Policy({ property, context, roles })`。
-- 能加直接关联时优先加关联，例如 `tenant!: Ref<Tenant>`，避免在 RLS 里写复杂子查询。
-- 记住 `command` 默认是 `PolicyCommand.ALL`。如果表不应授予 insert、update 或 delete 权限，不要省略 `command`。
-- 多条 permissive policy 在 PostgreSQL 中按 OR 合并。restrictive policy 会与 permissive 结果按 AND 合并。
-- 只有真正需要约束所有匹配命令的护栏才使用 `PolicyMode.RESTRICTIVE`，例如软删除可见性。
-- 当命令意图重要，或稳定的迁移策略名有助于 review 时，优先使用具名 policy。
-- Entity 装饰器是 policy 的源定义。先修改 `@Policy`，再让 MikroORM 生成继承 `RowLevelSecurityMigration` 的迁移；不要只手改迁移 SQL。
+## 身份与 session
 
-## 可选上下文与类型转换
+Auth 使用 `app.user.id`、`app.workspace.id`、`app.member.id`；空身份值是空字符串。服务账户可以有 member 而没有 user，用户会话也可以登录但未选择 workspace。不要把 `app.member.id` 当成所有已登录请求必有字段，也不要把请求头里的 workspace ID 当作成员资格证明。
 
-`current_setting('app.tenant_id', true)` 在上下文未设置时可能得到 `NULL`
-或空字符串。空字符串直接 `::bigint` 会让本来应返回空结果的匿名/无租户
-请求报 `invalid input syntax for bigint: ""`。
+通过 `DatabaseModuleOptions.session` 给每次 request fork 设置初始匿名 session；它在认证之前运行。使用 Auth 时，让认证流程维护最终身份；自定义授权入口应先验证身份和成员关系，再设置范围。业务自定义变量使用一致的完整命名，例如 `app.tenant.id`。
 
-当 `property/context` 简写不能安全表达可选上下文时，使用具名自定义 policy：
-
-```ts
-@Policy({
-  name: 'tenant_resource_tenant_all_authenticated_policy',
-  using:
-    "(nullif(current_setting('app.tenant_id', true), '')::bigint = tenant_id)",
-  withCheck:
-    "(nullif(current_setting('app.tenant_id', true), '')::bigint = tenant_id)",
-  roles: ['authenticated'],
-})
-```
-
-不要用 `coalesce(..., '0')` 制造一个可能与真实 ID 相撞的哨兵值。
-
-## 常见模式
-
-租户归属表：
-
-```ts
-@Policy({
-  property: 'tenant',
-  context: 'tenant_id',
-  roles: ['authenticated'],
-})
-```
-
-登录用户可以读取所有用户，但只能更新自己：
-
-```ts
-@Policy({
-  name: 'user_select_policy',
-  command: PolicyCommand.SELECT,
-  using: '(true)',
-  roles: ['authenticated'],
-})
-@Policy({
-  name: 'user_update_policy',
-  command: PolicyCommand.UPDATE,
-  property: 'id',
-  context: 'user_id',
-  roles: ['authenticated'],
-})
-```
-
-用户或租户访问：
-
-```ts
-@Policy({
-  property: 'user',
-  context: 'user_id',
-  roles: ['authenticated'],
-})
-@Policy({
-  property: 'tenant',
-  context: 'tenant_id',
-  roles: ['authenticated'],
-})
-```
-
-这个模式成立是因为 permissive policies 会按 OR 合并。注意这两条 policy 都默认作用于 `ALL`，如果写入行为需要更严格控制，应显式设置 `command`。
-
-## 业务例外
-
-不要把邀请 token、API key hash、一次性 token 或其他查找密钥写进实体 RLS 策略。使用 `RequestContext.child()`，只在确实需要的那一次查询周围临时禁用 RLS。
-
-```ts
-return await RequestContext.child(() => {
-  RowLevelSecurity.setMode(RowLevelSecurityMode.DISABLED);
-
-  return this.findOne({
-    inviteToken,
-    user: null,
-  });
+```typescript
+em.setSessionContext({
+  role: 'authenticated',
+  variables: { 'app.tenant.id': authorizedTenantId },
+});
+await em.transactional(async (tx) => {
+  // 所有需要原子性的查询和写入使用 tx。
 });
 ```
 
-当子作用域需要在正常 RLS 下使用另一组上下文写入时，先清理继承的 RLS 状态，再设置子作用域内的值：
+`setSessionContext()` 合并变量；需要替换身份时，在独立 fork 上传入完整 `session` 或先 `clearSessionContext()` 再设置，避免残留上一组变量。不要在活动事务中切换、清空或绕过 session；先确定范围再开始事务。默认 `transaction` 策略会为带 session 的普通 ORM 查询创建短事务，不需要旧的全请求事务模块。
 
-```ts
-return await RequestContext.child(() => {
-  RowLevelSecurity.clear();
-  RowLevelSecurity.setRole('authenticated');
-  RowLevelSecurity.setContext('user_id', currentUser.id);
-  RowLevelSecurity.setContext('tenant_id', tenant.id);
+`em.getConnection().execute()` 不携带 EntityManager session。受 RLS 保护的查询使用 ORM API 或 SQL EM 的 `em.execute()`；不要为了绕过 session 错误改成底层 connection。
 
-  return this.update(entity, input);
+## 空上下文与实体示例
+
+`current_setting(key, true)` 可能返回 NULL 或空字符串；转换 bigint/uuid 前使用 `nullif(..., '')`。不要用可能与真实 ID 相撞的 `0` 作为哨兵值。
+
+```typescript
+import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
+
+@Entity({
+  policies: [{
+    name: 'tenant_document_tenant_all',
+    command: 'all',
+    roles: ['authenticated'],
+    using: "tenant_id = nullif(current_setting('app.tenant.id', true), '')::bigint",
+    check: "tenant_id = nullif(current_setting('app.tenant.id', true), '')::bigint",
+  }],
+})
+export class TenantDocument {
+  @PrimaryKey()
+  id!: number;
+
+  @Property({ type: 'bigint', fieldName: 'tenant_id' })
+  tenantId!: string;
+}
+```
+
+以上 SQL 针对已显式映射的 `tenant_id`。需要复用或重命名安全时，使用 policy callback 的 columns 映射并正确引用标识符；不要混淆 TS 属性名与数据库列名。
+
+## 后台任务与业务例外
+
+先验证 job 的租户来源和业务权限，优先创建带精确租户 session 的 fork。v8 Queue Processor 已建立 RequestContext；自定义 CLI/worker 在应用初始化后使用 `RequestContext.run()` 包住完整 awaited 工作。
+
+需要局部上下文时，`RequestContext.child()` 本身不会 fork EM 或切换数据库角色。创建 fork，并在 child 内绑定它；当前调用已有事务时不要用新 fork 把操作悄悄拆出原事务：
+
+```typescript
+import { EntityManager } from '@mikro-orm/core';
+import { RequestContext } from '@nest-boot/request-context';
+
+const current = em.getContext(false);
+if (current.isInTransaction()) {
+  throw new Error('Choose the database scope before starting the transaction');
+}
+const scoped = current.fork({
+  session: {
+    role: 'authenticated',
+    variables: { 'app.tenant.id': authorizedTenantId },
+  },
+});
+await RequestContext.child(async () => {
+  RequestContext.set(EntityManager, scoped);
+  await scoped.find(TenantDocument, {});
 });
 ```
 
-如果当前可能没有活动的 request context，用 `RequestContext.isActive()` 包装 helper，并在需要时回退到 `RequestContext.run(new RequestContext({ type: '...' }), run)`。
+只有经过明确授权的内部操作才考虑清空独立 fork 的 session 或使用维护角色。清空 session 恢复的是连接基础角色，并不保证或自动授予 BYPASSRLS；必须核对真实数据库权限。不要修改父 EM、改变全局设置，或为方便查询在数据库 session 中传递 token/hash。
 
-后台 scheduler、webhook 和 reconciliation worker 没有用户租户上下文时，
-把 RLS bypass 限制在一个 `RequestContext.child()` 内；不要改变进程级默认值，
-也不要让禁用状态泄漏到下一次作业。
+Auth 的认证和邀请等流程已有 Service 边界；不要复制其私有 `runAuthQuery`。调用 Auth Service 后再开始业务事务，避免在带 RLS 的活动事务内调用需要独立认证持久化上下文的操作。
 
-## 迁移与数据库验证
+## 迁移与验证
 
-1. 对 Entity policy 写 metadata 单元测试，断言名称、命令、`using` 和
-   `withCheck`。
-2. 用 MikroORM 生成迁移，检查 `up()` 创建新 policy，`down()` 恢复旧
-   policy；如果删除了最后一条 policy，检查表的 RLS enable/disable 状态。
-3. 在 disposable PostgreSQL 运行 `up -> check -> down -> up`。
-4. 查询 `pg_policies` 和 `pg_class.relrowsecurity` 验证真实数据库状态。
-5. 至少运行一次空上下文 SQL 探针：设置 authenticated role、清空
-   `app.tenant_id`，对受保护表执行 `select`，确认返回空/允许的行而不是
-   bigint cast 错误。
-6. 再用正确与错误 tenant context 验证读取和写入边界。
+1. 升级前把已有 policy 纳入 `@Entity({ policies })`，再生成 diff。MikroORM 会 introspect 原生 policy，缺少 metadata 可能使 diff 删除旧 policy 并关闭 RLS；暂不接管时评估 `schemaGenerator.ignorePolicies`，不要只靠 safe 模式。
+2. 使用官方 `@mikro-orm/migrations` 的 `Migration` / `Migrator`。单独审查角色、GRANT、policy 与 RLS enable/force 状态；不要复制框架示例的重建 baseline 到已有数据的库。
+3. 在 disposable PostgreSQL 执行 `up -> migration:check -> down -> up`，检查 `pg_policies`、`pg_class.relrowsecurity` / `relforcerowsecurity`。
+4. 用受限角色验证空、正确、错误租户的读取和写入；验证两个并发请求/连续 job 的 session 不串用、事务内切换被拒绝、异常结束后父 session 不变。
+5. 只有替身或 metadata 校验时，明确尚未完成真实 PostgreSQL 验证。RLS 不限制 TRUNCATE/序列操作，初始化权限按业务实际收敛。
+
+依据：[MikroORM 原生 RLS](https://mikro-orm.io/docs/row-level-security)、[v8 迁移指南](https://github.com/nest-boot/nest-boot/blob/main/apps/docs/content/docs/migration-v8.mdx)。

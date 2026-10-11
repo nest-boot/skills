@@ -36,6 +36,17 @@
         "公开 API alias 有 deprecated/version 边界，不让两套内部概念无限共存",
         "迁移和部署顺序支持新旧版本短暂并存，并有回滚验证"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "在 Nest Boot v8/MikroORM 7 中将 tenantId 数据列改为 workspaceId，原生 RLS 也引用此列，库里有数据。请给出跨层检查和迁移验证顺序。",
+      "expected_output": "更新原生 Entity policies、session variables 与客户端，在保留数据的迁移中验证真实 RLS。",
+      "files": [],
+      "expectations": [
+        "RLS 更新 @Entity({ policies }) 的 using/check 与实际列映射，不使用旧 @Policy/RowLevelSecurityMigration",
+        "同步 session variables、实体关系、索引、GraphQL 和客户端引用",
+        "保留现有数据并审查 up/down，使用空/正确/错误范围做真实 PostgreSQL 验证"
+      ]
     }
   ]
 }

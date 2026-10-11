@@ -22,7 +22,7 @@
 import { ArgsType, ObjectType } from '@nest-boot/graphql';
 import { ConnectionBuilder } from '@nest-boot/graphql-connection';
 
-import { Conversation } from './conversation.entity';
+import { Conversation } from './conversation.entity.js';
 
 // 1. 初始化构建器并声明对应可以用来 search / filter / sort 的合法安全字段
 export const { Connection, ConnectionArgs } = new ConnectionBuilder(

@@ -1,69 +1,62 @@
 # 仓库贡献工作流
 
-目标仓库：[nest-boot/nest-boot](https://github.com/nest-boot/nest-boot)。开始工作时重新读取根 `package.json`、`nx.json`、目标 package 的 `package.json` 和 `.github/workflows/verify.yml`；这里记录的是基线，不替代仓库当前配置。
+目标仓库：[nest-boot/nest-boot](https://github.com/nest-boot/nest-boot)。开始工作时读取根 `package.json`、`turbo.json`、`.changeset/config.json`、目标 package manifest 与 `.github/workflows/verify.yml` / `release.yml`；本文是 v8 基线，不替代当前配置。
 
 ## 当前仓库约束
 
-- 默认分支是 `main`，workspace 使用 pnpm 和 Nx。
-- 根 `package.json` 当前要求 Node 24.4+、pnpm 10.30.3；以 checkout 中声明为准。
-- `@nest-boot/<name>` 通常对应 `packages/<name>`，先用 package 的 `name` 字段确认，不只依赖目录猜测。
-- PR 标题由 commitlint 校验，使用 `fix(scope): ...`、`feat(scope): ...`、`docs(scope): ...` 等 Conventional Commit 形式。
-- PR CI 构建 packages、检查 Prettier、运行 lint、TypeDoc 和 coverage tests；完整测试需要 PostgreSQL、Redis 与 MinIO 服务。
-- `CONTRIBUTING.md`、`SECURITY.md`、Issue forms 和 PR template 是当前贡献入口；开始任务时重新读取，若它们与本 reference 不一致则以上游文件和 CI 为准。
+- 默认分支 `main`；Node.js >=24.21.0、pnpm 10.30.3、原生 ESM。
+- Turborepo 编排构建任务，Changesets 管理独立包版本，GitHub Actions 执行验证与发布。
+- 使用 Vitest + SWC，注释通过 ESLint 的 JSDoc TypeScript preset 检查；不再运行 Nx、Jest 或 TypeDoc 命令。
+- `@nest-boot/<name>` 通常对应 `packages/<name>`，以 manifest 为准；旧数据库/队列包已更名为 database/queue。
+- PR 标题仍使用 Conventional Commits；版本升级幅度由 changeset 声明，不再依赖提交标题推断。
+- 完整 CI 包含包/示例构建、类型/格式/Lint、coverage、E2E、示例服务器、浏览器和独立 tarball 消费者。服务依赖包括 PostgreSQL、Redis、S3 兼容存储（当前 CI 使用 RustFS）和 Mailpit。
 
 ## 准备 checkout 与分支
 
-1. 确认现有 checkout 的 `origin` 指向 `nest-boot/nest-boot` 或受控 fork，并查看 `git status`。
-2. 工作区包含无关改动时不要清理或覆盖；使用独立 worktree/clone，或在用户确认后等待。
-3. 获取最新远程状态，从最新 `main` 创建 `fix/<package>-<topic>`、`feat/<package>-<topic>` 或同等清晰的专用分支。
-4. 先搜索重复项：
+1. 确认 origin 与 `git status`，保留无关改动，必要时创建独立 worktree。
+2. 同步默认分支，从最新 `main` 创建专用分支；beta 用于明确的预发布周期。
+3. 读取当前 CONTRIBUTING、SECURITY 和 GitHub 模板；查询相同问题的 open/closed Issue 和 PR。
+4. 创建 Issue、推送、提交 PR 与合并按用户已授权范围执行，不直接推送 main。
 
-   ```bash
-   gh issue list --repo nest-boot/nest-boot --state all --search '<package symptom>'
-   gh pr list --repo nest-boot/nest-boot --state all --search '<package symptom>'
-   ```
+## 按改动选择验证
 
-查重是只读动作；创建 Issue、推送和创建 PR 需要用户明确授权。
-
-## 实现与验证
-
-先添加能在修复前失败的最小测试，再修改实现。先检查目标 package 暴露的 Nx targets；存在 test target 时使用它，否则让根 Jest 按 package 路径运行：
+可复现的行为修复先添加能失败的回归测试。确认目标包确实声明对应脚本；构建所需依赖后再运行测试，例如：
 
 ```bash
-pnpm nx run @nest-boot/<package>:test --skip-nx-cache -- --runInBand
-pnpm exec jest --runInBand packages/<package>
-pnpm nx run @nest-boot/<package>:build --skip-nx-cache
-pnpm nx run @nest-boot/<package>:lint --skip-nx-cache
+pnpm exec turbo run build --filter=@nest-boot/<package> --force
+pnpm --filter @nest-boot/<package> test
+pnpm exec turbo run lint --filter=@nest-boot/<package>
 ```
 
-两个测试命令不要求同时执行。某些 package 没有 test 或 lint target，也可能没有测试文件；先用 `pnpm nx show project @nest-boot/<package>` 或 package 配置确认，不执行不存在的 target。文档、导出或类型变化还应运行相关检查：
+需要缩小 Vitest 范围时用该包的 `exec vitest run <file>`，不套用 Jest 的 `--runInBand`。测试或 lint 脚本缺失时先检查 manifest，不执行不存在的命令。
+
+根据风险追加相关命令，不要求每次文案修订跑全部集成测试：
 
 ```bash
-pnpm format:check
-pnpm typedoc:check
-pnpm build:packages --skip-nx-cache
-```
-
-完整 CI 对齐命令为：
-
-```bash
-pnpm build:packages --skip-nx-cache
+pnpm build:packages --force
+pnpm build:examples --force
 pnpm format:check
 pnpm lint
-pnpm typedoc:check
 pnpm test:cov
+pnpm test:e2e
+pnpm test:consumer
+pnpm test:release
 ```
 
-`pnpm test:cov` 的 CI 环境会提供 PostgreSQL、Redis 和 MinIO。没有同等服务时只运行可证明的子集，并在 PR 中明确未运行项。公开包内容变化时酌情运行 `pnpm --filter @nest-boot/<package> pack --dry-run`；发布流程变化才运行 `pnpm release:dry-run`。
+`test:consumer` 验证发布 tarball 的独立安装、公开导出、strict peers 与启动；公开依赖或入口变更应运行。`test:release` 用于版本/发布流程变更。需要完整 CI 时复用当前 workflow 的服务和示例测试命令。缺少依赖服务时明确未运行项，不把类型检查冒充运行时通过。
 
-提交前检查：
+文档改动按范围运行 `pnpm build:docs`；JSDoc 对齐 `jsdoc.configs['flat/recommended-typescript-error']`，由仓库 ESLint 检查，不恢复 TypeDoc/TSDoc 工具链。
 
-```bash
-git diff --check
-git status --short
-```
+## Changesets 与发布
 
-不要提交测试缓存、环境文件、生产数据、无关 lockfile 变化或用户已有改动。
+- 对用户可见的包变更运行 `pnpm changeset`，选择受影响包和 patch/minor/major，提交生成的 `.changeset/*.md`。
+- 只改工具或文档且不需要发布时使用 `pnpm changeset --empty`；用 `pnpm release:status` 检查影响。不要因 Conventional Commit 标题是 feat/fix 就省略 changeset。
+- 合入 main 后，Action 创建/更新 version PR；`pnpm release:version` 更新版本、changelog 和 lockfile。version PR 合并后完整验证、打包，再由独立 OIDC job 发布 npm。
+- 不手改包版本或在普通功能 PR 本地发布；本地预演使用可丢弃副本，以免消耗待提交的 changeset。
+- beta 使用 `changeset pre enter beta`，`.changeset/config.json` 的 baseBranch 对齐 beta；首次周期先同步 main 的稳定版本与工具。退出时执行 `changeset pre exit`、恢复 main 基线，并按贡献文档走稳定版 version PR，不能直接把 beta 包作为 latest 发布。
+- npm 部分成功后，重跑原失败 workflow 的 publish job，保留原打包 artifact/plan。新开 workflow 的 plan 会排除已发布版本，不能代替原计划的 GitHub tag/release 修复。
+
+提交前运行 `git diff --check` 并检查 `git status --short`，排除测试缓存、环境文件、生产数据与无关 lockfile 改动。
 
 ## Issue 模板
 
