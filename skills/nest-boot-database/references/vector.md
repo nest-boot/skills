@@ -4,9 +4,13 @@
 
 在 `@nest-boot/database` 中使用向量字段时，先固定模型维度与距离度量，再根据数据规模和查询计划决定索引。
 
-## 已知兼容性限制
+## 实现与版本
 
-已核对的 npm 发布产物 `@nest-boot/database@8.1.0`（对应源码 commit `5ad627ba745563264618b21c93ee6e3573a03278`）与 `pgvector@0.2.1`、MikroORM 7.2 组合存在公开声明兼容问题：下面的 `@Property({ type: new VectorType(...) })` 会报 TS2322，即使开启 `skipLibCheck`。根因与最小复现见 [框架 Issue #426](https://github.com/nest-boot/nest-boot/issues/426)。在修复版本通过独立消费者类型检查前，不把这个示例当作当前版本可编译的方案，也不通过 `as any` 或忽略错误绕过。修复分支即使保留 8.1.0 manifest 也不等于已发布包；重新核对时检查实际 VectorType 继承、公开声明与消费者 tsc 结果，再判断限制是否仍成立。以下保留目标字段契约与索引写法，索引 callback 可独立验证。
+以包含 [PR #427](https://github.com/nest-boot/nest-boot/pull/427) 的 `@nest-boot/database@8.1.1` 修复为基线。VectorType 直接继承 `@mikro-orm/core` 公开的 `Type`，不再依赖 npm 的 `pgvector` 包；PostgreSQL 的 `vector` 扩展仍需由数据库部署安装。
+
+已发布的 8.1.0 存在旧声明继承链导致的 TS2322（[Issue #426](https://github.com/nest-boot/nest-boot/issues/426)），升级到包含修复的版本后复验消费者类型，不再把它列为当前实现的阻断限制。不用 `as any`、忽略错误或额外安装旧 pgvector adapter 绕过问题。
+
+核对宿主锁定的包版本与实际声明；修复是否进入 main、是否已发布、项目是否已升级是不同状态。公开消费者应能通过 strict NodeNext 编译，覆盖实例形式、class 形式及 MikroORM Type 赋值，而不仅是内部 mock 测试。
 
 ## 1. 字段类型声明与维度约束
 
@@ -27,6 +31,10 @@ export class SourceChunk {
   embedding?: number[];
 }
 ```
+
+VectorType 的 JS 值是非空、元素均为有限 number 的数组；不把数字字符串强制转为数字。空数组、NaN、Infinity、非数值元素和非法数据库向量文本会被拒绝，null/undefined 原样保留。显式维度必须为正整数；属性 metadata 的 dimensions 优先于构造参数，不指定维度时列为 vector。实际向量长度与维度匹配、float32 存储范围仍由 PostgreSQL 校验，不能把本地数值检查当作完整数据库校验。
+
+`$exists: true/false` 的布尔值是查询指令，MikroORM 的查询转换路径会保留它；这不代表字段本身接受布尔向量值。验证时检查正常向量序列化、非法输入拒绝和 `$exists` 查询生成，不能据此宣称已完成带 vector 扩展的数据库往返测试。
 
 ## 2. 向量近似最近邻索引 (HNSW)
 

@@ -86,7 +86,7 @@
     },
     {
       "id": 8,
-      "prompt": "教程说 VectorType 可用，消费者却 TS2322；pgvector 声明引用 core/types。当前修复分支已改为继承公开 Type，manifest 仍是 8.1.0，npm 8.1.0 与远端 main 仍为旧实现。该如何核实和报告？不要修改或发布代码。",
+      "prompt": "以下是修复发布前的历史复现场景，并非当前 main 状态：教程说 VectorType 可用，消费者却 TS2322；pgvector 声明引用 core/types。当前修复分支已改为继承公开 Type，manifest 仍是 8.1.0，npm 8.1.0 与远端 main 仍为旧实现。该如何核实和报告？不要修改或发布代码。",
       "expected_output": "用公开声明与实际消费者验证缺陷，区分已发布包、main 和修复分支，不凭文档或相同版本号判断。",
       "files": [],
       "expectations": [

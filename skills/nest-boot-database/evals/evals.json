@@ -56,7 +56,19 @@
         "保留 properties 与 ORM 生成的 indexName，不新写死索引名称",
         "通过真实 metadata/生成 SQL 或类型探针验证列名和表名，没有把结构校验当数据库索引性能证明",
         "扩展在独立基础设施迁移中先安装，再生成/执行向量列与索引迁移",
-        "涉及 VectorType 字段时说明 database 8.1.0 的已知类型兼容问题（Issue #426），不以 as any 或忽略错误假装修复"
+        "涉及 VectorType 字段时按包含 PR #427 的 database 8.1.1 实现说明，不再将旧 TS2322 写成当前限制；宿主仍锁定旧版时建议升级并复验，不用 as any 绕过"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "PR #427 已合并，database 8.1.1 已发布。请更新 VectorType 用法：还要安装 npm pgvector 吗？旧 TS2322 还阻断吗？空数组、数字字符串、NaN、维度和 $exists 怎样处理？保留数据库扩展与消费者验证要求，不执行数据库迁移。",
+      "expected_output": "以修复后的公开 Type 实现为准，正确区分旧版本、JS 输入校验、查询操作数与 PostgreSQL 扩展/存储校验。",
+      "files": [],
+      "expectations": [
+        "从 @nest-boot/database 导入 VectorType，修复使用公开 MikroORM Type；不再要求 npm pgvector，也不把旧 TS2322 作为已升级版本的阻断项",
+        "保留 PostgreSQL vector 扩展要求，不因为删除 Node 包就删除扩展迁移",
+        "向量为非空有限 number 数组，不强转数字字符串；null/undefined 保留，显式维度为正整数且属性 metadata 优先，实际长度/存储范围仍需数据库校验",
+        "保留查询 $exists 布尔操作数但不接受布尔字段值，用实际消费者 tsc 和针对性行为探针验证，不谎称已跑 live vector 数据库往返"
       ]
     }
   ]
