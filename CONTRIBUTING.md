@@ -9,6 +9,12 @@ Thank you for improving the guidance used by Nest Boot agents. Contributions sho
 - Keep organization-specific naming, directory layout, deployment, and private wrapper conventions in the consuming project.
 - Follow [SECURITY.md](SECURITY.md) instead of opening a public Issue for suspected vulnerabilities or sensitive data exposure.
 
+## Verify framework behavior
+
+Use the actual implementation, exported types and reproducible behavior of the target version as evidence. Framework documentation, tutorials and code comments may be stale; verify their claims against the relevant code path before incorporating them into a skill. Tests help establish behavior, but inspect whether they exercise the claimed public contract.
+
+Record the source commit or published artifact being checked. An installed npm package, current main and an unreleased fix branch can behave differently even when their manifests show the same version. When documentation and implementation disagree, describe the observed behavior and report a confirmed defect to its owner; do not invent an API from the documentation or turn an implementation bug into a recommended contract.
+
 ## Prepare a contribution
 
 1. Search open and closed Issues and PRs for the skill name and symptom.

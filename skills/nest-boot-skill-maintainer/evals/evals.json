@@ -85,6 +85,17 @@
         "用真实 API 证据、目标 eval、quick validator、README 和全仓校验证明修复",
         "遵循用户要求提交自解释 PR，不额外创建内容重复的 issue"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "官方教程说 Queue schema 的 transform 会改变 job.data；但目标版本 BaseQueue.validateJobData 只 await schema.data.parseAsync(data)，没有赋值，add 把原 data 传给 super.add，QueueManager 消费时也传原 job。请修订 queue skill。以实际代码为准，不能只看教程。",
+      "expected_output": "依据完整调用路径确认校验保留原值，修订技能并将教程差异作为文档问题处理。",
+      "files": [],
+      "expectations": [
+        "核对目标版本的 BaseQueue.add/validateJobData 与 QueueManager 消费路径及公开 z.input 类型，不仅复述教程",
+        "通过消费者或行为探针确认原值保留，不宣称 transform 输出会被持久化或传入 handler",
+        "区分技能修订与框架文档缺陷；记录源码 commit 或发布产物，不把 mock 测试通过当契约证据"
+      ]
     }
   ]
 }

@@ -83,6 +83,17 @@
         "重跑原失败 run 的 publish job，保留其 artifact/plan；必要时在原 commit 补缺失 tag/release，不覆盖已有记录",
         "等待 npm 处理后验证 registry、dist-tag 和 tarball 完整性，再报告是否全部完成"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "教程说 VectorType 可用，消费者却 TS2322；pgvector 声明引用 core/types。当前修复分支已改为继承公开 Type，manifest 仍是 8.1.0，npm 8.1.0 与远端 main 仍为旧实现。该如何核实和报告？不要修改或发布代码。",
+      "expected_output": "用公开声明与实际消费者验证缺陷，区分已发布包、main 和修复分支，不凭文档或相同版本号判断。",
+      "files": [],
+      "expectations": [
+        "检查实际继承与导出并运行最小消费者 tsc，教程和内部 mock 单测不能覆盖这个结论",
+        "分别记录 npm 产物、main 和修复分支 SHA，不因相同 manifest 版本号就说已发布修复",
+        "查重并关联已有 Issue/修复，明确未发布状态，不将实现缺陷当成正确契约，也不新增重复 Issue或执行未授权发布"
+      ]
     }
   ]
 }

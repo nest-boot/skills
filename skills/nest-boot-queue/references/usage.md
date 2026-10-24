@@ -112,4 +112,4 @@ QueueManager 为每个注册队列创建 QueueEvents；每个 reader 只监听�
 
 reader 沿用 BullMQ 默认起点，不回放历史，也不维护 lastEventId。事件读取与 job 创建之间有启动窗口，不能把这些事件当作可靠补偿日志；需要历史查询时使用可选 queue-api。
 
-依据：[Queue 教程](https://github.com/nest-boot/nest-boot/blob/main/apps/docs/content/docs/tutorial/queue.mdx)、[类型定义](https://github.com/nest-boot/nest-boot/blob/main/packages/queue/src/interfaces/job.interface.ts)。
+实现依据：[BaseQueue 校验与投递](https://github.com/nest-boot/nest-boot/blob/main/packages/queue/src/queues/base.queue.ts)、[QueueManager 事件与消费生命周期](https://github.com/nest-boot/nest-boot/blob/main/packages/queue/src/queue.manager.ts)、[Job 类型定义](https://github.com/nest-boot/nest-boot/blob/main/packages/queue/src/interfaces/job.interface.ts)。核对宿主安装版本对应的源码/产物；教程和注释只作辅助，不据此推断未验证的 API。

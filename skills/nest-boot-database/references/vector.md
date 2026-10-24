@@ -6,7 +6,7 @@
 
 ## 已知兼容性限制
 
-`@nest-boot/database@8.1.0` 与 `pgvector@0.2.1`、MikroORM 7.2 组合存在公开声明兼容问题：下面的 `@Property({ type: new VectorType(...) })` 会报 TS2322，即使开启 `skipLibCheck`。根因与最小复现见 [框架 Issue #426](https://github.com/nest-boot/nest-boot/issues/426)。在修复版本通过独立消费者类型检查前，不把这个示例当作当前版本可编译的方案，也不通过 `as any` 或忽略错误绕过。以下保留目标字段契约与索引写法，索引 callback 可独立验证。
+已核对的 npm 发布产物 `@nest-boot/database@8.1.0`（对应源码 commit `5ad627ba745563264618b21c93ee6e3573a03278`）与 `pgvector@0.2.1`、MikroORM 7.2 组合存在公开声明兼容问题：下面的 `@Property({ type: new VectorType(...) })` 会报 TS2322，即使开启 `skipLibCheck`。根因与最小复现见 [框架 Issue #426](https://github.com/nest-boot/nest-boot/issues/426)。在修复版本通过独立消费者类型检查前，不把这个示例当作当前版本可编译的方案，也不通过 `as any` 或忽略错误绕过。修复分支即使保留 8.1.0 manifest 也不等于已发布包；重新核对时检查实际 VectorType 继承、公开声明与消费者 tsc 结果，再判断限制是否仍成立。以下保留目标字段契约与索引写法，索引 callback 可独立验证。
 
 ## 1. 字段类型声明与维度约束
 

@@ -20,6 +20,7 @@ description: 在 Nest Boot 消费项目或 `nest-boot/skills` 仓库中维护和
 
 1. **诊断并路由问题**：记录观察结果、期望行为、最小复现、版本、根因和验证命令。按 [Issue 与仓库路由](references/issue-routing.md) 区分 skill 缺口、框架缺陷、依赖问题和项目私有问题；框架 BUG 或公开 API 改进改用 `$nest-boot-maintainer`。
 2. **读取实际版本与上游版本**：在消费项目中先读取触发问题的安装副本，并记录它与当前上游版本是否存在差异；在上游仓库中读取目标 `SKILL.md`、相关 reference 和 eval。不要把旧安装版本误当成最新上游行为。
+   框架行为以目标版本的实际调用路径、公开导出/类型和可重复探针为依据；教程、README、注释可能过时，先对照实现再引用。记录 commit 或发布产物，区分已安装包、main 与未发布修复分支，即使 manifest 版本号相同也不能混用。文档与实现冲突时记录差异并核实缺陷归属，不凭文档编造 API，也不把已确认的实现缺陷固化为推荐规则。
 3. **建立本地基线**：改进已有 skill 时，在首次编辑前保存完整原始快照和完整 lockfile 状态。新增 skill 的 baseline 是不安装该 skill；已有 skill 的 baseline 可以是原始版本或上一轮稳定版本，但同一轮 paired runs 必须固定并可由哈希复核。
 4. **设计并迭代候选版本**：新增或大幅重组时使用项目安装的 `skill-creator`。将失败案例泛化为触发条件、决策规则、反例和可观察验证，删除项目名、客户数据、内部 URL、凭证和临时 workaround。同步新增或修改真实 eval。
 5. **隔离自评估**：触发测试可使用空白 fixture；依赖框架行为时使用消费项目的临时 worktree、最小复现项目或其他可丢弃副本。为 with-skill 与 baseline 复制相同 commit、依赖锁、项目输入和配置，再分别复制本轮不可变的候选与基线快照；保持模型、提示、权限、准备/验证命令和 run 数一致。使用 `skill-creator` 的 grader、benchmark 和 review viewer 汇总结果。
