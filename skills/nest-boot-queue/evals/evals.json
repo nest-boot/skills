@@ -3,37 +3,85 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "给 source 队列新增 process 和 delete 两种任务，要求生产者与 Processor 在 TypeScript 中共享任务名和 payload 类型。",
-      "expected_output": "用共享队列常量和 Job 可辨识联合约束 Queue.add 与 Processor 路由，并让具体处理方法接收缩窄后的任务类型。",
+      "prompt": "给 Nest Boot queue 8.2 的 source 队列新增 sync 和 delete-source 两种任务：sync 返回 sourceId，delete-source 不返回结果。请给出队列、Processor、Service 和模块注册代码，任务名称、data 与返回值都要受类型约束。",
+      "expected_output": "以 BaseQueue 的 readonly jobSchemas 为唯一契约，使用具名 BaseProcessor handlers 和 class provider 注册，直接注入队列投递。",
       "files": [],
       "expectations": [
-        "队列注册、InjectQueue 和 Processor 使用同一个名称常量",
-        "process 与 delete 分别定义包含 name 和 payload 的 Job 类型并组成联合",
-        "Processor 根据 job.name 路由，具体 handler 接收对应的窄化 Job 类型"
+        "@Queue() 的 SourceQueue 继承 BaseQueue，jobSchemas 每个 data 是 z.object；sync 有 result，delete-source 省略 result",
+        "@Processor(SourceQueue) 的 SourceProcessor 继承 BaseProcessor，定义 processSync 与 processDeleteSource，参数是对应 Job<SourceQueue, name>，返回值分别匹配 result 和 Promise<void>",
+        "模块通过 providers 注册队列与 Processor，Service 直接注入 SourceQueue，不使用 registerQueue、InjectQueue、WorkerHost 或通用 process",
+        "运行配置传入 super(options)，不注入 QUEUE_MODULE_OPTIONS 或拓宽 jobSchemas 为 Record/JobSchemas"
       ]
     },
     {
       "id": 2,
-      "prompt": "BullMQ 任务偶尔重复投递，而且日志里查不到是哪条资源触发的，请改造投递和处理代码。",
-      "expected_output": "使用带领域前缀的稳定 jobId，并在 Processor 的请求上下文内绑定安全的 job 与资源标识。",
+      "prompt": "BullMQ 任务可能重试并重复投递，要求日志能追踪资源，又不能跨 singleton Processor 的并发 job 泄漏上下文。请给出可靠做法。",
+      "expected_output": "使用稳定合法 jobId 或 deduplication，保持业务幂等；在每个独立 queue RequestContext 中绑定安全标识，不保存当前任务到实例字段。",
       "files": [],
       "expectations": [
-        "jobId 使用稳定领域前缀且不是纯整数",
-        "Processor 使用 Logger.assign 记录 jobId、jobName 和安全资源标识",
-        "不把完整 payload、凭证或敏感第三方载荷写入日志"
+        "jobId 使用稳定领域前缀，不是纯整数且不包含冒号，解释移除/保留窗口与业务幂等",
+        "具名 handler 在活动 RequestContext 中用 Logger.assign 记录安全 job/资源标识",
+        "不把当前 job 或临时路径保存在 singleton 字段，不记录完整 payload 或凭证"
       ]
     },
     {
       "id": 3,
-      "prompt": "升级到 Nest Boot v8 后，旧 BullModule 和 BullMQMikroORMModule 要怎么替换？completed 事件里要写数据库和创建临时目录，请给出注册与上下文处理方式。",
-      "expected_output": "使用 QueueModule、QueueDatabaseModule 和 Nest Boot 事件装饰器，继承 JobEntity 并注册具体实体，在事件自己的上下文中显式建立授权范围。",
+      "prompt": "升级到 queue 8.2 / queue-api 8.1：旧代码用 BullModule、QueueDatabaseModule、InjectQueue 和 OnQueueEvent，completed 回调里写库。请说明新注册、Job 历史、GraphQL 可见性和上下文处理，不实际改数据库。",
+      "expected_output": "Redis 核心静态 QueueModule 与可选 QueueApiModule 分离，使用具体 JobEntity 和 QueueVisible；原生事件需要独立上下文，Worker 显式启动。",
       "files": [],
       "expectations": [
-        "使用 @nest-boot/queue 的 QueueModule 和 @nest-boot/queue-database 的 QueueDatabaseModule",
-        "保留 bullmq 与 @nestjs/bullmq 上游包名",
-        "OnWorkerEvent/OnQueueEvent 从 @nest-boot/queue 导入，解释事件有独立 RequestContext",
-        "从 @nest-boot/queue-database 导入 JobEntity，派生具体实体并通过 QueueDatabaseModule.forRoot({ jobEntity }) 注册，不虚构包导出的具体 Job 实体",
-        "具体作业实体进入运行时和 CLI 发现，不假定原 HTTP 用户/member 自动传播到 job 或事件"
+        "QueueModule 静态导入，核心只依赖 Redis，不调用 forRoot/registerQueue 或 queue migration，也不安装 @nestjs/bullmq",
+        "可选 @nest-boot/queue-api 静态 QueueApiModule 复用全局 Database/GraphQL/Auth，具体 JobEntity 同时进入运行时与迁移 CLI 发现，不派生抽象实体",
+        "在 API 应用注册的具体 queue 上显式加无参 @QueueVisible()；user/workspace 查询各自授权，system 查询仅管理员且任务没有两个 owner",
+        "原生 queue.queueEvents 回调不自动继承 job/HTTP RequestContext 或身份，数据库与临时目录工作显式包住完整 awaited 上下文",
+        "QueueEvents 随已注册 queue 启动，Worker 要 queue:start/QueueManager.start 才消费，job 队列可单独启动"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "数据 schema 用 z.object({ count: z.coerce.number().default(1) })，结果 schema 把字符串 transform 为数字。queue.add 与消费时到底接收什么类型，异步 refine 如何处理？",
+      "expected_output": "按 z.input 和稳定 JSON 契约解释异步验证保留原值；不把 parse 的转换结果作为持久化或消费契约。",
+      "files": [],
+      "expectations": [
+        "使用 parseAsync 支持异步 refine，但丢弃解析结果，投递/消费/返回使用原始 z.input 值",
+        "不承诺 coerce/default/strip/transform 修改 Redis 数据或把 handler 输入自动变成 z.output",
+        "消费前和完成结果均复验，addBulk 先验证全批次，原生 updateData 不经过封装校验"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "同一个队列声明 send-email 和 sendEmail，Processor 只实现 async process(job: Job<EmailQueue>)。这能作为未知任务的兜底吗？正确的错误和类型约束是什么？",
+      "expected_output": "拒绝转换后同名任务及通用 process，要求每个 schema 对应准确具名 handler，未知任务在运行时失败。",
+      "files": [],
+      "expectations": [
+        "识别两种名称都映射到 processSendEmail，编译期与运行时都不能保留冲突",
+        "不支持 generic process(job)，每种任务必须有准确 Job 参数与 Promise 结果契约",
+        "缺少 handler/未知任务运行时失败，不静默忽略或无穷重试",
+        "EmailQueue/EmailProcessor 前缀约束属于 @nest-boot/queue/processor-name ESLint 规则，不谎称 TS 比较类名"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "API 只投递任务，另有 email 和 job 两个消费者。怎么分别启动全部、只启动 email、只启动 Job 历史？多实例 QueueEvents 是否会重放历史？",
+      "expected_output": "统一说明纯生产者也创建 reader，消费者通过同一过滤语义显式启动，默认不回放历史。",
+      "files": [],
+      "expectations": [
+        "不传过滤启动全部，--queue email 只启动 email，--queue job 能单独启动内置 job，重复参数可选多个",
+        "不特殊排除内置 job；过滤后没有 job 消费者时不会自动落库",
+        "每个注册 queue 都有原生 QueueEvents，多实例可能重复事件；默认 reader 不回放且不维护 lastEventId",
+        "内置同步使用源队列+Stream ID 去重和 bigint 事件顺序保护，不能跨队列比较 Stream ID"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Job API 要显示某个工作区任务、隐藏未标记队列，过期 30 天的异常卡死任务也要清理。应该给 JobEntity 加 user OR workspace RLS 吗？",
+      "expected_output": "沿用服务层可见性/授权、创建时间游标与内置 cleanup，不额外增加 OR RLS 或 schedule 依赖。",
+      "files": [],
+      "expectations": [
+        "JobEntity 无 RLS，JobService 同时约束可见队列、工作区成员和 read 权限，count 也不能绕过",
+        "GraphQL 不暴露 data/returnValue/failedReason，Job 仅允许 CREATED_AT 排序，UUID 为内部 tie-breaker",
+        "cleanup 按 lastEventMs，零值回退 createdAt，适用于所有状态，不只按 finishedAt",
+        "内置 job 队列 sync/cleanup 不依赖 ScheduleModule，不删除 Redis jobs"
       ]
     }
   ]

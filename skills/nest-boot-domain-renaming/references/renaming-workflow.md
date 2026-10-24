@@ -50,6 +50,8 @@
 - 队列中可能仍有旧 Job 时，决定 drain、兼容消费或一次性迁移，不能只改 producer；
 - 外部协议保留旧字段时，只在 adapter 边界出现旧名称，并补映射测试。
 
+当前 Queue 的名称来自 `@Queue(name?)`：省略 name 时，类名去掉末尾 Queue 后转 kebab-case，改 class 名可能同时切换 Redis queue。过渡期可显式保留稳定的旧 Redis 名称，并同步 `@Processor(QueueClass)` 与同前缀 Processor。任务名还决定具名 handler：send-email → processSendEmail。检查新旧 jobSchemas 和转换后重名；兼容旧消息应保留对应 schema/具名 handler 或先 drain，不用已移除的通用 process(job) 兜底。具体类型与事件边界见 `nest-boot-queue`。
+
 ## 5. 验证闭环
 
 ### 静态与单元验证

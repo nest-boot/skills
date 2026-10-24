@@ -6,6 +6,8 @@ Nest Boot 相关 AI Agent Skills 仓库，用于沉淀 `@nest-boot` 生态及其
 
 `nest-boot-database` 和 `nest-boot-queue` 分别对应 `@nest-boot/database` 和 `@nest-boot/queue`；`nest-boot-row-level-security` 指导 MikroORM 原生 RLS，不再依赖旧 Nest Boot RLS 包。
 
+队列指引对齐 `@nest-boot/queue` 8.2+ 的 Redis/Zod API；可选 Job 历史与 GraphQL 查询使用 `@nest-boot/queue-api` 8.1+。较早 8.x 的 queue-database、字符串队列注册、通用 process 和事件装饰器已移除；不能只凭相同 major 假定 API 一致。
+
 ## 使用
 
 建议在项目根目录中以项目级别安装本仓库中的所有 skills，并安装到通用 `.agents/skills/` 目录：
@@ -67,7 +69,7 @@ npx skills add https://github.com/nest-boot/skills \
 | [nest-boot-logger](skills/nest-boot-logger/) | 使用 `@nest-boot/logger` 在 NestJS 可注入类中记录结构化日志的通用规范。适用于添加日志、调试结构化追踪、配置 LoggerModule 或排查日志上下文，重点覆盖依赖注入、上下文绑定、日志级别与敏感数据保护。 |
 | [nest-boot-maintainer](skills/nest-boot-maintainer/) | 诊断使用 `@nest-boot/*` 时发现的可复现框架缺陷或通用改进建议，并为 `nest-boot/nest-boot` 准备或提交 GitHub Issue、修复分支和 PR。适用于运行时异常、类型或公开 API 不一致、错误生成结果、回归、跨包设计改进以及官方文档与实现不符；若问题只属于 `nest-boot/skills` 指引、业务项目约定或上游依赖，应改由相应仓库处理。 |
 | [nest-boot-module-design](skills/nest-boot-module-design/) | 使用 Nest Boot v8 与 NestJS 12 新增、升级、拆分或重构业务模块的目录、边界、文件和类型组织规范。适用于 v8 ESM 与包迁移、创建新领域、安排 Entity/Service/Resolver/Controller/DTO/Input、拆分大文件和共享类型，以及确定公共基础设施与业务代码的位置；领域整体改名使用 `nest-boot-domain-renaming`。 |
-| [nest-boot-queue](skills/nest-boot-queue/) | 使用 Nest Boot v8 的 `@nest-boot/queue` 与 BullMQ 构建和管理 NestJS 异步任务队列。适用于迁移旧队列包、创建队列、定义 Job payload、注册 Processor 或事件处理器、投递任务、持久化作业或排查依赖注入，重点保证名称与载荷类型安全、RequestContext 生命周期和注册关系一致。 |
+| [nest-boot-queue](skills/nest-boot-queue/) | 使用 Nest Boot v8 的 Redis 队列 API（queue 8.2+、可选 queue-api 8.1+）声明 Zod jobSchemas、BaseQueue 和具名 BaseProcessor handlers。适用于任务投递与消费、job 名称/data/result 推导、Worker 启停、QueueEvents、Job 历史与 GraphQL 可见性，以及从旧 BullMQ/queue-database API 迁移；重点区分 Redis 执行、可选持久化、验证与请求身份边界。 |
 | [nest-boot-row-level-security](skills/nest-boot-row-level-security/) | 在 Nest Boot v8、@nest-boot/database 与 MikroORM 7.2 中设计、迁移、审查和验证 PostgreSQL/PGlite 原生 RLS。适用于 Entity policies、session role/variables、app.member.id、事务边界、受控 fork、后台任务租户隔离，以及从已移除的 @nest-boot/row-level-security 迁移。 |
 | [nest-boot-skill-maintainer](skills/nest-boot-skill-maintainer/) | 在 Nest Boot 消费项目或 `nest-boot/skills` 仓库中维护和改进 agent skills。适用于直接修改项目已安装的 `.agents/skills` 副本并自评估、把成熟改进泛化后提交上游 issue 与 PR、新增或重组 skill、调整触发描述与 eval、处理拆分重命名迁移、同步合并后的正式版本以及闭环 CI 和审查；框架 BUG 或公开 API 改进应改用 `nest-boot-maintainer`，项目私有约定或未经验证的猜测不应上游化。 |
 | [nest-boot-temporary-directory](skills/nest-boot-temporary-directory/) | 使用 `@nest-boot/temporary-directory` 在 NestJS HTTP、GraphQL、队列或其他 `RequestContext` 工作单元中创建并自动清理临时目录。适用于模块注册、临时文件生命周期、Multer/流式上传、后台任务、命名空间、上下文丢失或清理测试；重点保证目录只在活动上下文中分配、异步消费者不会越过上下文边界、清理所有权保持单一。 |

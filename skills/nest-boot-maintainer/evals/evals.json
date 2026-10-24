@@ -60,6 +60,29 @@
         "公开包修复包含 changeset；工具/文档变更可用 empty changeset；Conventional Commit 不替代版本声明",
         "说明 main version PR 合并后验证打包并由独立 OIDC job 发布，不直接推送 main 或执行未授权发布"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "最新 Nest Boot 根 package.json 没有 test:consumer/test:release。旧 checklist 却让人执行这两个命令，还说 CI 已经覆盖 tarball 消费者。请准备真实可执行的验证流程。",
+      "expected_output": "以当前 manifest/workflow 为准，移除不存在命令并明确临时消费者验证的独立证据。",
+      "files": [],
+      "expectations": [
+        "先读取当前 manifest 和 workflow，不执行不存在的 test:consumer/test:release",
+        "用真实 pack 产物在临时消费者中验证 peers、导出和启动，不把它冒充既有 CI 覆盖",
+        "文档按范围执行 types:check/lint/build，已有检查通过后不无理由反复全量跑"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "v8 发行中五个包已成功，queue-api 首次发布 ENEEDAUTH。用户已授权发行，要求所有正式版本保持 v8。如何完成并核对恢复？",
+      "expected_output": "区分首次认证和 OIDC，复用原 CI 包并补元数据，不擅自 bump major 或宣称部分成功即完成。",
+      "files": [],
+      "expectations": [
+        "核对全部目标版本是 8.x，先检查新包是否存在，不用新 changeset/版本号掩盖上传失败",
+        "使用维护者认证完成首次发布，配置本仓库 release.yml 的 Trusted Publisher，不索取或回显 token",
+        "重跑原失败 run 的 publish job，保留其 artifact/plan；必要时在原 commit 补缺失 tag/release，不覆盖已有记录",
+        "等待 npm 处理后验证 registry、dist-tag 和 tarball 完整性，再报告是否全部完成"
+      ]
     }
   ]
 }

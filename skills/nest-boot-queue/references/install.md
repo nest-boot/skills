@@ -1,77 +1,75 @@
-# 配置与局部模块注册
+# 依赖、注册与启停
 
-在使用队列进行任务分发处理时，首先需要在专属领域（Domain Module）中注册该队列。
+## 依赖和连接
 
-v8 安装 `@nest-boot/queue@^8`、`@nest-boot/request-context@^8`、`@nestjs/bullmq@^12` 与兼容的 `bullmq@^5.81.5`，并核对其他 peers。Node.js >=24.21.0、NestJS 12、原生 ESM 是运行时基线。
+在已有 NestJS 12 / ESM 应用中安装与锁文件一致的 peers，例如：
 
-假定你现在要为一个业务域（类似于 `Source`）创建后台任务队列，请依照如下步骤操作：
-
-## 1. 定义队列名称常量
-
-在依赖注入、模块注册与 Processor 装饰器之间共享同一个队列名称常量，避免重命名时遗漏字符串。
-
-**`xxx.constants.ts`**
-```typescript
-export const SOURCE_QUEUE_NAME = 'source';
+```bash
+pnpm add @nest-boot/queue@^8.2 @nest-boot/request-context@^8 \
+  @nest-boot/command@^8 bullmq@^6.3.12 zod@^4
 ```
 
-## 2. 注册队列至专属 Module
+核对 manifest 中其余 peers，不继续安装 `@nestjs/bullmq` 来恢复旧接口。队列核心不需要 DatabaseModule、GraphQLModule、queue migration 或 PostgreSQL。
 
-前往该领域的 `Module`，通过 `@nest-boot/queue` 提供的 `QueueModule.registerQueue(...)` 按需注册队列通道。同时，将 Processor 追加到 `providers` 列表。
+根模块静态导入 `QueueModule`。默认连接来自 `REDIS_URL`；自定义 connection、prefix 和 defaultJobOptions 传给各队列的 `super(options)`，Worker 继承该队列的 connection/prefix。不存在 `QueueModule.forRoot()`、`registerQueue()`、`withQueueRedisConfig()` 或 `QUEUE_MODULE_OPTIONS` 配置注入。
 
-**`source.module.ts`**
+## 注册领域 providers
+
+队列和处理器的完整定义见 [类型与使用](usage.md)。所属模块注册 class；只导出其他模块需要注入的队列或服务：
+
 ```typescript
-import { QueueModule } from '@nest-boot/queue';
+// source.module.ts
 import { Module } from '@nestjs/common';
 
-import { SOURCE_QUEUE_NAME } from './source.constants.js';
 import { SourceProcessor } from './processors/source.processor.js';
+import { SourceQueue } from './queues/source.queue.js';
 import { SourceService } from './source.service.js';
 
 @Module({
-  imports: [
-    // 注入定义好的名称分配一条工作队列管道
-    QueueModule.registerQueue({
-      name: SOURCE_QUEUE_NAME,
-    }),
-  ],
-  providers: [SourceProcessor, SourceService],
+  providers: [SourceQueue, SourceProcessor, SourceService],
   exports: [SourceService],
 })
 export class SourceModule {}
 ```
 
-在注册 feature queue 前，先检查宿主应用是否已经在根模块或公共基础设施模块中完成 BullMQ/Redis 的一次性全局配置。不要假定模块一定名为 `CommonModule`，也不要在每个业务模块中重复初始化连接。
+在应用组合根导入 `QueueModule` 和 `SourceModule`，不要把 queue class 写进 imports。生产者也可仅注册和导出 SourceQueue，不注册 Processor。
 
-根模块可直接导入 `QueueModule`，使用 `REDIS_URL`，或用 `forRoot()` / `forRootAsync()` 指定连接。
+## 启动模型
 
-## 3. 可选的作业持久化
+应用初始化后，每个注册队列都有自己的原生 QueueEvents reader，纯生产者进程也一样。Worker 只有显式 start 才会运行。
 
-`@nest-boot/queue-database` 导出抽象 `JobEntity`，应用需要声明自己的具体实体；它不是 `bullmq` 的 `Job` 类型，也没有可直接导入的具体 `Job` 表：
+宿主已接入 `@nest-boot/command` 的 CLI 时：
 
-```typescript
-// entities/queue-job.entity.ts
-import { Entity } from '@mikro-orm/decorators/legacy';
-import { JobEntity } from '@nest-boot/queue-database';
-
-@Entity()
-export class QueueJob extends JobEntity {}
+```bash
+pnpm exec nb queue:start
+pnpm exec nb queue:start --queue source
+pnpm exec nb queue:start --queue source --queue job
+pnpm exec nb queue:start --queue job
 ```
 
-让数据库运行时及迁移 CLI 都发现 `QueueJob`，再在应用模块注册：
+- 不传 `--queue` 时启动所有已注册 Processor，包括可选 queue-api 的 `job`。
+- 重复 `--queue` 只过滤所选名称；未知名称在启动前报错，不存在内置队列的特殊排除规则。
+- `--queue job` 保留单独运行历史同步/清理消费者的能力。
+- 没有 `queue:run` 或 `queue:migrate`；应用数据库迁移只属于可选 Job 历史。
+
+需要同一进程提供 HTTP 并消费任务时，在 bootstrap 中显式启动：
 
 ```typescript
-import { QueueDatabaseModule } from '@nest-boot/queue-database';
-import { Module } from '@nestjs/common';
+// main.ts
+import { QueueManager } from '@nest-boot/queue';
+import { NestFactory } from '@nestjs/core';
 
-import { QueueJob } from './entities/queue-job.entity.js';
+import { AppModule } from './app.module.js';
 
-@Module({
-  imports: [QueueDatabaseModule.forRoot({ jobEntity: QueueJob })],
-})
-export class JobsModule {}
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
+  await app.init();
+  await app.get(QueueManager).start();
+  await app.listen(process.env.PORT ?? 3000);
+}
+
+void bootstrap();
 ```
 
-`jobEntity` 是必填配置，不能只把静态 `QueueDatabaseModule` 放进 imports。只有在回调中写业务数据时，不必启用作业持久化模块。
-
-引入 `HealthCheckModule` 后使用 `QueueHealthIndicator` 检查已注册队列的 Redis 连接。保留上游 `@nestjs/bullmq` 包名，但使用 Nest Boot 包导出的 Processor 和事件装饰器以获得上下文集成。
+`start(['source'])` 只启动 source；`stop(names?)` 会排空对应 Worker，队列和事件 reader 仍可使用。沿用宿主已有的启动与关闭流程，不额外手建 Worker 或 Redis 连接。可用 QueueHealthIndicator 检查已注册队列的 Redis 连接。

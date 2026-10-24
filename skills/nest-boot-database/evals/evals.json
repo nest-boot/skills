@@ -15,10 +15,10 @@
     {
       "id": 2,
       "prompt": "设计可同时支持 ProviderAlpha 和 ProviderBeta 的外部服务目录与实例表，外部 ID 怎么放？",
-      "expected_output": "使用供应商枚举和供应商中立的目录/实例边界，区分 providerCatalogItemId 与 providerInstanceId。",
+      "expected_output": "先区分应用封闭的供应商集合和动态目录，再使用供应商中立的目录/实例边界。",
       "files": [],
       "expectations": [
-        "ProviderKind 使用独立 enum 并由 @Enum 映射",
+        "代码封闭管理的供应商可用 ProviderKind enum 与 @Enum；动态开放目录不被硬编码为固定 enum",
         "providerCatalogItemId 位于目录映射，providerInstanceId 位于业务实例",
         "同一能力在不同供应商下使用独立 provider binding 或目录记录"
       ]
@@ -33,6 +33,30 @@
         "装饰器来自 @mikro-orm/decorators/legacy，TS 相对导入有 .js，使用 Node 24.21+/NestJS 12/MikroORM 7.2",
         "运行时和 CLI 的 entities 与 entitiesTs 都包含 Auth 的 entities 数组，不用 ignoreSchema 隐藏鉴权实体",
         "不安装旧请求事务包，不继承 BaseUser，不在认证中途切换活动事务的 session"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Nest Boot v8 的 CLI 示例仍 import { loadConfigFromEnv } from @nest-boot/database；项目同时启用 Auth 与 queue-api。给出当前可加载的配置，保持已有发现路径，不执行迁移。",
+      "expected_output": "使用 getDatabaseConfig 与 withAuthDatabaseConfig，具体 JobEntity 同时进入 entities/entitiesTs。",
+      "files": [],
+      "expectations": [
+        "只使用真实导出的 getDatabaseConfig，不继续调用 loadConfigFromEnv",
+        "用 withAuthDatabaseConfig 或等价去重注册 Auth 实体并保留原发现路径",
+        "queue-api 导出的具体 JobEntity 同时注册到运行时和 CLI，不继承抽象实体，不给 Redis 队列执行迁移"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "审查 MikroORM 7.2 的向量索引：expression: (table, columns, indexName) => raw(\"create index ?? on ?? using hnsw (?? vector_cosine_ops)\", [indexName, table, columns.embedding])。不连接生产库，修正并说明验证。",
+      "expected_output": "按真实 IndexCallback 修正参数顺序与 table 对象，并保留自动索引名，单独初始化 vector 扩展。",
+      "files": [],
+      "expectations": [
+        "callback 顺序是 columns/table/indexName，SQL 表名使用 table.qualifiedName",
+        "保留 properties 与 ORM 生成的 indexName，不新写死索引名称",
+        "通过真实 metadata/生成 SQL 或类型探针验证列名和表名，没有把结构校验当数据库索引性能证明",
+        "扩展在独立基础设施迁移中先安装，再生成/执行向量列与索引迁移",
+        "涉及 VectorType 字段时说明 database 8.1.0 的已知类型兼容问题（Issue #426），不以 as any 或忽略错误假装修复"
       ]
     }
   ]

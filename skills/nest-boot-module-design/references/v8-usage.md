@@ -5,7 +5,7 @@
 ## 运行时与 ESM
 
 - Node.js >=24.21.0、NestJS 12，`@nest-boot/*` 使用兼容的 8.x。
-- GraphQL 集成使用 `@nestjs/graphql` / `@nestjs/apollo` 14、Apollo Server 5；队列使用 `@nestjs/bullmq` 12；数据库使用 MikroORM 7.2。
+- GraphQL 集成使用 `@nestjs/graphql` / `@nestjs/apollo` 14、Apollo Server 5；当前 queue 8.2 使用 BullMQ `^6.3.12` 和 Zod 4，不需要 `@nestjs/bullmq`；数据库使用 MikroORM 7.2。
 - `package.json` 设置 `"type": "module"`；TypeScript 使用 `module` / `moduleResolution: "NodeNext"`、`target: "ES2023"` 或更新目标。Nest legacy decorators 配置继续开启 `experimentalDecorators` / `emitDecoratorMetadata`。
 - TypeScript 相对路径包含输出 `.js` 扩展名；不依赖 CommonJS require 入口。Nest Boot v8 只提供 import exports。
 - 类型专用导入用 `import type`；需要 Nest 构造注入或装饰器运行时值的 class 保持 value import。不能把 `EntityManager` 等 DI token 机械改为 type-only。
@@ -18,14 +18,16 @@
 | `@nest-boot/mikro-orm` / `MikroOrmModule` | `@nest-boot/database` / `DatabaseModule` |
 | `@nest-boot/mikro-orm-crypt` / `@nest-boot/mikro-orm-hash` | `@nest-boot/database-crypt` / `@nest-boot/database-hash` |
 | `@nest-boot/bullmq` / `BullModule` | `@nest-boot/queue` / `QueueModule` |
-| `@nest-boot/bullmq-mikro-orm` / `BullMQMikroORMModule` | `@nest-boot/queue-database` / `QueueDatabaseModule` |
+| `@nest-boot/bullmq-mikro-orm` / `BullMQMikroORMModule`，以及较早 8.x 的 `@nest-boot/queue-database` / `QueueDatabaseModule` | 可选 `@nest-boot/queue-api` / `QueueApiModule`，注册具体 JobEntity |
 | `@nest-boot/auth-graphql` / `AuthGraphQLModule` | 并入 `@nest-boot/auth`，仅注册 AuthModule |
 | `@nest-boot/file-upload` | `@nest-boot/staged-upload`；GraphQL 额外使用 `@nest-boot/staged-upload-graphql` |
 | beta 的 `@nest-boot/graphql-staged-upload` / `GraphQLStagedUploadModule` | `@nest-boot/staged-upload-graphql` / `StagedUploadGraphQLModule` |
 | `@nest-boot/row-level-security` | 移除，使用 MikroORM 原生 policy/session 与官方 Migration |
 | `@nest-boot/mikro-orm-request-transaction` | 移除，按业务边界使用 `em.transactional()` |
 
-上游 `@mikro-orm/*`、`bullmq`、`@nestjs/bullmq` 的名字不变。`DatabaseModule` 需要 `forRoot()` / `forRootAsync()` 初始化；具体安装和 CLI 注册见 `nest-boot-database`，队列见 `nest-boot-queue`。Auth 同样通过 `forRoot(options)` / `forRootAsync(...)` 注册；上传核心通过 `register(options)` / `registerAsync(...)` 配置并依赖 Storage，GraphQL 适配模块直接静态导入，详见 `nest-boot-graphql`。
+上游 `@mikro-orm/*` 与 `bullmq` 保留原名；不要为了旧装饰器安装 `@nestjs/bullmq`。`DatabaseModule` 需要 `forRoot()` / `forRootAsync()` 初始化，环境配置由 `getDatabaseConfig()` 加载，Auth 提供 `withAuthDatabaseConfig()` 合并实体发现；具体 CLI 注册见 `nest-boot-database`。Auth 通过 `forRoot(options)` / `forRootAsync(...)` 注册；上传核心通过 `register(options)` / `registerAsync(...)` 配置并依赖 Storage，GraphQL 适配模块直接静态导入，详见 `nest-boot-graphql`。
+
+当前队列 API 需 `@nest-boot/queue` 8.2+，可选历史/API 需 queue-api 8.1+。静态 QueueModule 配合 `@Queue()` + BaseQueue provider、Zod jobSchemas、`@Processor(QueueClass)` + BaseProcessor 具名 handlers；构造函数配置连接与 Worker，使用 `queue:start` 显式消费。没有 registerQueue/InjectQueue/WorkerHost/事件装饰器或 queue migration。QueueApiModule 复用已配置的全局 Database/GraphQL/Auth；JobEntity 进应用迁移，队列需 `@QueueVisible()` 才能从 API 读取。详细契约见 `nest-boot-queue`。
 
 GraphQL 开发工具改用 `graphiql`。Mailer 使用 Nodemailer 10（v8 peer 范围为 `^10.0.16`），移除 `@types/nodemailer`；Mailer 提供直接 transport，不会自动把邮件投递到队列。需要异步发送时由应用显式接入 Queue。
 

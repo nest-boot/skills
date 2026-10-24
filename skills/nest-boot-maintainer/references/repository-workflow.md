@@ -9,7 +9,7 @@
 - 使用 Vitest + SWC，注释通过 ESLint 的 JSDoc TypeScript preset 检查；不再运行 Nx、Jest 或 TypeDoc 命令。
 - `@nest-boot/<name>` 通常对应 `packages/<name>`，以 manifest 为准；旧数据库/队列包已更名为 database/queue。
 - PR 标题仍使用 Conventional Commits；版本升级幅度由 changeset 声明，不再依赖提交标题推断。
-- 完整 CI 包含包/示例构建、类型/格式/Lint、coverage、E2E、示例服务器、浏览器和独立 tarball 消费者。服务依赖包括 PostgreSQL、Redis、S3 兼容存储（当前 CI 使用 RustFS）和 Mailpit。
+- 当前完整 CI 包含包/示例构建、类型/格式/Lint、coverage、E2E、示例服务器和浏览器；独立 tarball 消费者按公开 API/打包风险另行验证，不假定已有统一脚本。服务依赖包括 PostgreSQL、Redis、S3 兼容存储（当前 CI 使用 RustFS）和 Mailpit。
 
 ## 准备 checkout 与分支
 
@@ -39,22 +39,23 @@ pnpm format:check
 pnpm lint
 pnpm test:cov
 pnpm test:e2e
-pnpm test:consumer
-pnpm test:release
 ```
 
-`test:consumer` 验证发布 tarball 的独立安装、公开导出、strict peers 与启动；公开依赖或入口变更应运行。`test:release` 用于版本/发布流程变更。需要完整 CI 时复用当前 workflow 的服务和示例测试命令。缺少依赖服务时明确未运行项，不把类型检查冒充运行时通过。
+当前根 manifest 没有 `test:consumer` 或 `test:release`，不要执行不存在的命令。公开依赖或入口变更时，在临时消费者中安装实际 pack 产物，核对公开导出、strict peers 与启动；发布流程变更时读取当前 workflow、Changesets CLI 帮助和包产物，在可丢弃 checkout 中验证。宿主以后提供专用脚本时再复用它。缺少依赖服务时明确未运行项，不把类型检查冒充运行时通过。
 
-文档改动按范围运行 `pnpm build:docs`；JSDoc 对齐 `jsdoc.configs['flat/recommended-typescript-error']`，由仓库 ESLint 检查，不恢复 TypeDoc/TSDoc 工具链。
+文档改动按范围运行 `pnpm --filter @nest-boot/docs types:check`、`pnpm --filter @nest-boot/docs lint` 和 `pnpm build:docs`；JSDoc 对齐 `jsdoc.configs['flat/recommended-typescript-error']`，由仓库 ESLint 检查，不恢复 TypeDoc/TSDoc 工具链。
 
 ## Changesets 与发布
 
 - 对用户可见的包变更运行 `pnpm changeset`，选择受影响包和 patch/minor/major，提交生成的 `.changeset/*.md`。
+- 升级幅度服从当前维护版本线和用户已给出的约束。维护 v8 时核对所有正式目标仍是 8.x，不因 feat、破坏性提交标题或 API 重构就擅自选择 major；也不把历史 beta 当成当前稳定基线。
 - 只改工具或文档且不需要发布时使用 `pnpm changeset --empty`；用 `pnpm release:status` 检查影响。不要因 Conventional Commit 标题是 feat/fix 就省略 changeset。
 - 合入 main 后，Action 创建/更新 version PR；`pnpm release:version` 更新版本、changelog 和 lockfile。version PR 合并后完整验证、打包，再由独立 OIDC job 发布 npm。
 - 不手改包版本或在普通功能 PR 本地发布；本地预演使用可丢弃副本，以免消耗待提交的 changeset。
 - beta 使用 `changeset pre enter beta`，`.changeset/config.json` 的 baseBranch 对齐 beta；首次周期先同步 main 的稳定版本与工具。退出时执行 `changeset pre exit`、恢复 main 基线，并按贡献文档走稳定版 version PR，不能直接把 beta 包作为 latest 发布。
-- npm 部分成功后，重跑原失败 workflow 的 publish job，保留原打包 artifact/plan。新开 workflow 的 plan 会排除已发布版本，不能代替原计划的 GitHub tag/release 修复。
+- 新增/改名包先核对 npm 是否已有该包。首次发布需要维护者认证；成功后把 Trusted Publisher 绑定到 nest-boot/nest-boot 的 release.yml，并允许直接发布。npm 登录与单次发布认证可能是两步，只使用 npm 返回的有效认证链接，不索取或回显 token；不要为首次认证升级版本。
+- npm 部分成功后，重跑原失败 workflow 的 publish job，保留原打包 artifact/plan。新开 workflow 的 plan 会排除已发布版本；手工补发后也要检查原 run 对应 commit 上的 tag/GitHub release，必要时补齐缺失记录，不能覆盖已有 tag/release。
+- npm 返回发布成功后仍可能等待处理。最终从 registry 核对每个目标版本、latest/beta 标签和下载 tarball 与 CI artifact 的完整性；部分成功不等于全部发行完成。
 
 提交前运行 `git diff --check` 并检查 `git status --short`，排除测试缓存、环境文件、生产数据与无关 lockfile 改动。
 

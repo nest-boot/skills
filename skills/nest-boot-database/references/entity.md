@@ -43,3 +43,4 @@ status: Opt<SourceStatus> = SourceStatus.PROCESSING;
 
 1. **标识符序列化**：数据库使用 bigint，而 GraphQL/JSON 客户端不能安全表示 64 位整数时，沿用宿主应用的 string 序列化约定；不要在同一系统混用 number 与 string ID。
 2. **按查询设计索引**：只有真实查询会按 `status`/`type` 过滤，且选择性、排序或组合条件能受益时才添加索引。低基数字段的单列索引不一定有效，应结合查询计划选择单列、组合或部分索引。
+3. **索引和唯一约束默认自动命名**：通过 `@Index({ properties })` / `@Unique({ properties })` 表达字段，通常省略 name。JSON 路径可使用结构化 columns，部分索引使用 where；确需原生 SQL expression 时接收 `(columns, table, indexName)`，用 `table.qualifiedName` 和传入的 indexName。已有库需要保留外部约定的名称时先设计兼容迁移，不为样式破坏现有依赖。

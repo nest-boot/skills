@@ -31,7 +31,7 @@
       "expected_output": "内部 payload 使用纯 type/interface，HTTP 输入使用带运行时元数据的 class，共享有限集使用独立 enum，并由专项技能处理 GraphQL 注册和 ORM 映射。",
       "files": [],
       "expectations": [
-        "队列 payload 使用编译期 type/interface，并按复用范围决定就近或 types/interfaces 目录",
+        "纯内部消息结构可用 type/interface；@nest-boot/queue 任务由 jobSchemas/Zod 推导，不手写会与 schema 漂移的 payload 接口",
         "HTTP 输入使用 class 以承载 validator、transformer 和 Swagger 元数据",
         "状态 enum 只有一份源定义，默认键值一致且不复制字面量",
         "GraphQL enum 注册和 MikroORM 映射分别路由到对应专项 skill"
@@ -59,6 +59,18 @@
         "key 的 permissions: [] 不额外限制，非空权限与 user/member 权限取交集；创建还受签发者与目标主体授权上限约束",
         "allowedPermissions: [] 表示不允许授予权限，不能解读成无限制",
         "app.member.id 不是所有登录请求必有，数据库使用 app.user.id/app.workspace.id/app.member.id 而不传应用权限"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "一个较早 8.x 项目还有 @nest-boot/queue-database、@nestjs/bullmq、QueueModule.registerQueue 和 WorkerHost。准备升级到已发布的 queue 8.2 / queue-api 8.1，请给出模块与文件边界。",
+      "expected_output": "按当前 Redis/Zod API 迁移，正确区分静态队列核心、可选 API 与应用数据库迁移。",
+      "files": [],
+      "expectations": [
+        "Queue/Processor 是独立 singleton providers，使用 BaseQueue/jobSchemas 与 BaseProcessor/processXXX",
+        "QueueModule 静态导入，配置在构造函数，直接注入队列 class，不保留旧 @nestjs/bullmq wrapper",
+        "queue-api 可选并复用全局 Database/GraphQL/Auth，JobEntity 是具体实体，QueueVisible 控制 API 公开",
+        "不能只看 major=8 判断兼容，也不能把新库 baseline 覆盖已有业务迁移"
       ]
     }
   ]

@@ -33,6 +33,17 @@
         "相对导入使用 .js，DI Logger 保留运行时 value import",
         "assign 只在活动 RequestContext 中使用且不记录完整 job payload"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Logger 的 Error 可能带第三方请求 header，想核对自动类名并输出数据库连接错误。如何用当前 API 实现且不泄漏凭证？",
+      "expected_output": "使用 getContext 检查自动类名，只输出安全分类；说明 error 支持 Error 不代表可无条件序列化敏感对象。",
+      "files": [],
+      "expectations": [
+        "使用 getContext() 核对当前 Logger context，普通注入不重复 setContext",
+        "error 支持 Error/字符串与结构化字段，但对不可信 Error 先筛选安全字段",
+        "不无条件记录 error.message、请求 header 或整个 SDK 错误，保留 errorName/failureKind 等分类"
+      ]
     }
   ]
 }

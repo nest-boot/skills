@@ -10,8 +10,9 @@
 - `providerSessionId`：一次临时会话或工作流 ID，只应存放在对应会话记录中。
 - 两个字段表达同一外部身份时应统一命名，避免同时保留 `externalXxxId` 与 `providerXxxId`。
 
-供应商使用 Enum，例如 `ProviderKind`，不要在字段和 service 分支中
-散落自由字符串。
+供应商接入集合由应用代码封闭管理时，可用 `ProviderKind` Enum，避免在
+service 分支中散落自由字符串；允许动态注册的开放供应商目录则使用稳定
+code 和持久化验证，不把当前两家供应商固化为不可扩展的枚举。
 
 ## 目录与实例
 

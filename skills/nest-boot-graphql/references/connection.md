@@ -74,3 +74,33 @@ export class ConversationResolver {
 ```
 
 需要租户范围、软删除或关联过滤时，通过 `find()` 的第三个参数传入 `where`，不要接受客户端直接控制这些服务端边界。
+
+## 4. 限制排序与按选择计算 count
+
+默认生成 ID 排序。只允许创建时间等业务排序键时，显式声明 `.addField({ field: 'id', type: 'string', sortable: false })`，再为允许的字段启用 sortable；id 仍作为游标内部 tie-breaker，不等于把它从实体删除。GraphQL 的 CREATED_AT 等枚举经 coercion 后是实体属性路径 `createdAt`，不要在 Service 中再次按枚举字面量比较。
+
+当 Resolver 能取得 `@Info()` 的 GraphQLResolveInfo 时，将其放进第三个 options 参数，可以在客户端未选择 totalCount/totalCountRelation 时跳过 count 查询：
+
+```typescript
+import type { GraphQLResolveInfo } from 'graphql';
+import { Args, Info, Query, Resolver } from '@nest-boot/graphql';
+import { ConnectionManager, type ConnectionResult } from '@nest-boot/graphql-connection';
+
+// ConversationConnection/Args 来自上面的 connection definition。
+@Resolver(() => Conversation)
+export class ConversationResolver {
+  constructor(private readonly cm: ConnectionManager) {}
+
+  @Query(() => ConversationConnection)
+  async conversations(
+    @Args() args: ConversationConnectionArgs,
+    @Info() info: GraphQLResolveInfo,
+  ): Promise<ConnectionResult<Conversation>> {
+    return await this.cm.find(ConversationConnection, args, { info });
+  }
+}
+```
+
+有授权范围时在同一个 options 中传 `{ info, where: trustedScope }`，不要把 where 本身作为第三参数，也不要用客户端 OR 条件替换固定范围。ConnectionResult 反映未选择时省略的 count 字段；未传 info 的调用维持原来的计数行为。测试分页边界、允许/禁止的排序键，并断言单条、节点分页与 count 使用同一授权范围。
+
+可选队列历史/API 还有 `@QueueVisible()` 和 user/workspace/system 查询边界，见 `nest-boot-queue`；不要通过自建无范围 Job Resolver 绕过 JobService。

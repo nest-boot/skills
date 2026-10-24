@@ -7,10 +7,11 @@
 | 方法 | 描述 | 典型场景 |
 |---|---|---|
 | `setContext(name)` | 覆盖自动推断的日志上下文名称 | 动态 Processor 等无法正确推断注入类名时 |
+| `getContext()` | 读取当前上下文名称 | 核对自动推断或显式覆盖的类名 |
 | `assign(bindings)` | 绑定结构化键值对，后续同一请求链路的日志自动携带 | 方法入口处绑定关键业务参数 |
 | `log(message, ...params)` | 输出 INFO 级别日志 | 操作成功、流程完成 |
 | `warn(message, ...params)` | 输出 WARN 级别日志 | 业务校验失败、非致命异常 |
-| `error(message, ...params)` | 输出 ERROR 级别日志 | 不可恢复错误、需告警 |
+| `error(messageOrError, ...params)` | 输出 ERROR 级别日志，支持 Error 或消息、结构化字段及 Nest stack/context 参数 | 不可恢复错误、需告警 |
 | `debug(message, ...params)` | 输出 DEBUG 级别日志 | 开发阶段调试细节 |
 | `verbose(message, ...params)` | 输出 TRACE 级别日志 | 极细粒度追踪 |
 
@@ -68,7 +69,7 @@ this.logger.log('项目创建成功', { projectId: project.id });
 this.logger.warn('项目名称已存在', { name: input.name });
 
 // 错误级 — 不可恢复的系统错误
-this.logger.error('数据库连接失败', { error: err.message });
+this.logger.error('数据库连接失败', { errorName: err.name, failureKind: 'database_connection' });
 ```
 
 ## 完整示例

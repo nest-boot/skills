@@ -24,6 +24,7 @@
 ├── <domain>.resolver.ts 或 <domain>.controller.ts
 ├── inputs/
 ├── enums/
+├── queues/ 和 processors/（需要后台任务时）
 ├── interfaces/ 或 types/
 └── *.spec.ts
 ```
@@ -34,6 +35,7 @@
 - `Service` 承载业务规则或有意义的数据访问语义，不包装一遍已有 API；
 - `Resolver`/`Controller` 处理协议入口、参数和响应映射，把业务工作委托给 Service；
 - `Module` 只负责组合 imports、providers、controllers 与 exports；
+- Queue 与 Processor 各自声明 singleton provider，任务 schema 属于 Queue；注册和消费生命周期遵循 `nest-boot-queue`，不再生成队列常量/InjectQueue/通用 process 路由样板；
 - Input/Args/DTO 是带运行时元数据的边界模型，不用纯 interface 替代；
 - 多处复用或复杂的编译期定义再进入 `interfaces/`、`types/` 或 `enums/`。
 

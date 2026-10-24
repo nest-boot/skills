@@ -35,6 +35,18 @@
         "不复制示例的空库 baseline 覆盖历史迁移",
         "服务账户允许只有 member，无 member 的登录用户也存在；使用 app.user.id/app.workspace.id/app.member.id 并在 Service 执行动作授权"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "QueueApiModule 的 JobEntity 是否也应加 userId OR workspaceId 的 RLS？后台业务实体仍要按 tenant 隔离，请区分这两种设计。",
+      "expected_output": "保持内置 Job 历史的服务层授权，业务实体仍用原生 RLS，拒绝伪造 job 身份。",
+      "files": [],
+      "expectations": [
+        "JobEntity 无 RLS，JobService 的 QueueVisible/user/workspace/system 检查是 API 边界",
+        "不为 Job 历史增加 user OR workspace policy，不把直接 ORM 查询当作已经授权",
+        "业务实体仍验证来源与权限，再在独立 fork 中建立精确 session，先于事务",
+        "job.data 中带 userId/workspaceId 不自动成为可信认证身份"
+      ]
     }
   ]
 }

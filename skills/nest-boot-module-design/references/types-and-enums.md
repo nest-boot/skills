@@ -5,7 +5,7 @@
 TypeScript `interface` 和 `type` 会在编译后消失，适合：
 
 - 内部函数或 service 的参数/返回类型；
-- 队列 payload、SDK 适配契约和可辨识联合；
+- SDK 适配契约、内部消息结构和可辨识联合；
 - 不需要装饰器元数据的共享结构；
 - 泛型约束和组合类型。
 
@@ -17,6 +17,8 @@ TypeScript `interface` 和 `type` 会在编译后消失，适合：
 - MikroORM Entity。
 
 不要给 interface 添加装饰器式期待，也不要用空 class 代替纯内部类型。选择取决于运行时是否需要读取该定义。
+
+`@nest-boot/queue` 的任务契约另有运行时要求：在具体 Queue 的 `readonly jobSchemas` 中声明 Zod data/result，通过 `Job<Q, N>`、`JobResult<Q, N>` 或 `z.input` 推导编译期类型。不要再手写一套会与 schema 漂移的 payload interface，也不把纯 interface 当作运行时校验。详见 `nest-boot-queue`。
 
 ## 提取位置
 

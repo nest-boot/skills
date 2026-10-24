@@ -4,6 +4,10 @@
 
 在 `@nest-boot/database` 中使用向量字段时，先固定模型维度与距离度量，再根据数据规模和查询计划决定索引。
 
+## 已知兼容性限制
+
+`@nest-boot/database@8.1.0` 与 `pgvector@0.2.1`、MikroORM 7.2 组合存在公开声明兼容问题：下面的 `@Property({ type: new VectorType(...) })` 会报 TS2322，即使开启 `skipLibCheck`。根因与最小复现见 [框架 Issue #426](https://github.com/nest-boot/nest-boot/issues/426)。在修复版本通过独立消费者类型检查前，不把这个示例当作当前版本可编译的方案，也不通过 `as any` 或忽略错误绕过。以下保留目标字段契约与索引写法，索引 callback 可独立验证。
+
 ## 1. 字段类型声明与维度约束
 
 TypeScript 的 `number[]` 本身不会提供 PostgreSQL vector 列类型。使用 `@nest-boot/database` 的 `VectorType`，并传入与 embedding 模型输出一致的维度。
@@ -39,10 +43,10 @@ import { Entity, Index } from '@mikro-orm/decorators/legacy';
 @Entity()
 @Index({
   properties: ['embedding'],
-  expression: (table, columns, indexName) =>
+  expression: (columns, table, indexName) =>
     raw(`create index ?? on ?? using hnsw (?? vector_cosine_ops)`, [
       indexName,
-      table,
+      table.qualifiedName,
       columns.embedding,
     ]),
 })
@@ -57,7 +61,9 @@ export class SourceChunk {
 
 ## 3. 防污关联提醒
 
-当数据库首次使用该类型时，审查生成迁移是否已经启用扩展。若生成器未覆盖此行为，在执行宿主应用的 `migration:up` 前对生成迁移做最小补充：
+MikroORM 7.2 的 Index callback 参数顺序是 `(columns, table, indexName)`；table 是包含 name、schema、qualifiedName 的对象，SQL 使用 `table.qualifiedName`。索引名交给 ORM 根据 properties 自动生成，不硬编码 name。
+
+当数据库首次使用该类型时，审查生成迁移是否已经启用扩展。若未启用，用先于向量列/索引运行的独立基础设施迁移安装扩展：
 
 ```typescript
     this.addSql(`create extension if not exists vector;`);

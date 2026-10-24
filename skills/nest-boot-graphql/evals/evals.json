@@ -35,6 +35,18 @@
         "signUp 查询 id/token，用户写入操作查询 id 后另行查询 profile",
         "使用 GraphQL/Apollo 14 与 graphiql，保持 ESM 相对导入"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "一个 Job 类似的 Connection 只允许 CREATED_AT 排序，又不想在只查 nodes 的 GraphQL 请求里执行 count。怎么配置 ConnectionBuilder 和 Resolver？",
+      "expected_output": "显式禁用公开 ID 排序，使用 Info 与 ConnectionResult 保留选择驱动的计数优化。",
+      "files": [],
+      "expectations": [
+        "addField 对 id 显式 sortable:false，仍保留内部 UUID/id 游标 tie-breaker",
+        "只对允许的字段启用 sortable，区分 GraphQL CREATED_AT 与解析后的实体路径 createdAt",
+        "通过 @Info 获取 GraphQLResolveInfo，在 options 中传 info，选择驱动返回使用 ConnectionResult",
+        "固定授权 where 和 info 放在同一个第三参数 options 中，未选择计数时不谎称返回总数为零"
+      ]
     }
   ]
 }

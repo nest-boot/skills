@@ -52,20 +52,17 @@ CLI 不启动 Nest；运行时的 `autoLoadEntities` 或 AuthModule 注册不能
 
 ```typescript
 import { defineConfig } from '@mikro-orm/core';
-import { entities as authEntities } from '@nest-boot/auth';
-import { loadConfigFromEnv } from '@nest-boot/database';
+import { withAuthDatabaseConfig } from '@nest-boot/auth';
+import { getDatabaseConfig } from '@nest-boot/database';
 
 export default async () => {
-  const config = await loadConfigFromEnv();
-  return defineConfig({
-    ...config,
-    entities: [...authEntities, ...(config.entities ?? [])],
-    entitiesTs: [...authEntities, ...(config.entitiesTs ?? [])],
-  });
+  return defineConfig(withAuthDatabaseConfig(await getDatabaseConfig()));
 };
 ```
 
-这里由 `loadConfigFromEnv()` 选择 driver，使用 core 的泛型 `defineConfig` 保留其类型；不要用 `as any` 掩盖 driver 不匹配。运行时的 `DatabaseModule.forRoot({ ... })` 也合并同一实体数组。不要照抄旧 `ignoreSchema: ['auth']` 配置隐藏 Auth 表，也不要继承旧 `BaseUser` 或用 `AuthModuleOptions.entities` 替换框架实体。业务字段放在关联实体中。
+这里由 `getDatabaseConfig()` 选择 driver，`withAuthDatabaseConfig()` 去重合并两组实体发现配置；使用 core 的泛型 `defineConfig` 保留类型，不用 `as any` 掩盖 driver 不匹配。运行时的 `DatabaseModule.forRoot({ ... })` 也使用同一配置。旧 `loadConfigFromEnv` 已无公开导出。不要照抄旧 `ignoreSchema: ['auth']` 配置隐藏 Auth 表，也不要继承旧 `BaseUser` 或用 `AuthModuleOptions.entities` 替换框架实体。业务字段放在关联实体中。
+
+启用 `@nest-boot/queue-api` 时，把它导出的具体 `JobEntity` 同时加入运行时和 CLI 的 `entities` / `entitiesTs`，由应用普通 migration 建表。核心 Redis queue 不要求数据库实体或 queue migration；历史/API 的配置见 `nest-boot-queue`。
 
 按宿主的构建与 TypeScript 执行器配置 CLI；已构建应用可直接使用 `pnpm exec mikro-orm --config ./dist/mikro-orm.config.js migration:check`。从应用包执行命令，确认 production JS 路径与开发 TS 路径分别能加载，不把旧 `ts-node` 配置当作 ESM 的通用解决方案。
 

@@ -66,6 +66,8 @@ export class TenantDocument {
 
 先验证 job 的租户来源和业务权限，优先创建带精确租户 session 的 fork。v8 Queue Processor 已建立 RequestContext；自定义 CLI/worker 在应用初始化后使用 `RequestContext.run()` 包住完整 awaited 工作。
 
+区分受 RLS 保护的业务实体与 queue-api 的内置 JobEntity：JobEntity 本身没有 RLS，公开查询由 JobService 统一执行 QueueVisible、用户/工作区范围与管理员 system-job 权限检查。不要给它套用 user OR workspace policy，或把 job.data 的身份标识当作已经认证的 session；详见 `nest-boot-queue`。
+
 需要局部上下文时，`RequestContext.child()` 本身不会 fork EM 或切换数据库角色。创建 fork，并在 child 内绑定它；当前调用已有事务时不要用新 fork 把操作悄悄拆出原事务：
 
 ```typescript

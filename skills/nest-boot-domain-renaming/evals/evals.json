@@ -47,6 +47,18 @@
         "同步 session variables、实体关系、索引、GraphQL 和客户端引用",
         "保留现有数据并审查 up/down，使用空/正确/错误范围做真实 PostgreSQL 验证"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "把 @Queue() class EmailQueue 改为 NotificationQueue，任务 send-email 也改名，Redis 还有旧消息。如何避免悄悄切换队列和丢失消费者？",
+      "expected_output": "核对自动队列名和 handler 映射，设计显式稳定名、旧 schema/handler 或 drain 的过渡。",
+      "files": [],
+      "expectations": [
+        "识别 EmailQueue/NotificationQueue 自动生成 email/notification 两个不同 Redis 名称，需要时用 @Queue 指定稳定名",
+        "同步 @Processor 队列 class、provider 注册和同前缀 Processor 名称",
+        "job 名同步到 jobSchemas 和 processXXX，拒绝转换后重名，不用通用 process(job) 接管",
+        "旧任务明确 drain、兼容具名 handler 或迁移，不只改 producer"
+      ]
     }
   ]
 }
