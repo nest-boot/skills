@@ -15,7 +15,7 @@ pnpm add @mikro-orm/migrations@~7.2.0 @mikro-orm/seeder@~7.2.0
 pnpm add -D @mikro-orm/cli@~7.2.0
 ```
 
-v8 不使用 `@nest-boot/mikro-orm-request-transaction`。跨操作原子性使用 `em.transactional()`；数据库 session 使用 MikroORM 原生能力，不要安装旧请求事务包来恢复被移除的全请求事务。
+跨操作原子性使用 `em.transactional()`；数据库 session 使用 MikroORM 原生能力。
 
 Nest 常用的 legacy decorator 配置下，装饰器从 `@mikro-orm/decorators/legacy` 导入；`Opt`、`Ref`、`t` 等从 `@mikro-orm/core` 导入。不要继续从驱动包导入 legacy 装饰器。相对 TypeScript 导入使用 `.js`。
 
@@ -60,7 +60,7 @@ export default async () => {
 };
 ```
 
-这里由 `getDatabaseConfig()` 选择 driver，`withAuthDatabaseConfig()` 去重合并两组实体发现配置；使用 core 的泛型 `defineConfig` 保留类型，不用 `as any` 掩盖 driver 不匹配。运行时的 `DatabaseModule.forRoot({ ... })` 也使用同一配置。旧 `loadConfigFromEnv` 已无公开导出。不要照抄旧 `ignoreSchema: ['auth']` 配置隐藏 Auth 表，也不要继承旧 `BaseUser` 或用 `AuthModuleOptions.entities` 替换框架实体。业务字段放在关联实体中。
+这里由 `getDatabaseConfig()` 选择 driver，`withAuthDatabaseConfig()` 去重合并两组实体发现配置；使用 core 的泛型 `defineConfig` 保留类型，不用 `as any` 掩盖 driver 不匹配。运行时的 `DatabaseModule.forRoot({ ... })` 也使用同一配置。业务字段放在关联实体中。
 
 启用 `@nest-boot/queue-api` 时，把它导出的具体 `JobEntity` 同时加入运行时和 CLI 的 `entities` / `entitiesTs`，由应用普通 migration 建表。核心 Redis queue 不要求数据库实体或 queue migration；历史/API 的配置见 `nest-boot-queue`。
 
@@ -70,8 +70,8 @@ export default async () => {
 
 - `DatabaseModuleOptions.session` 是同步 factory，在 request-scoped EM fork 创建时、认证之前执行。给匿名请求设置最小初始 role/variables；完成认证和成员验证后才更新授权身份。
 - `em.setSessionContext({ role, variables })` 更新原生 session；事务开始后不能切换它。先确定身份与范围，再进入 `em.transactional()`。
-- 自定义 `RequestContext.registerMiddleware()` 的依赖名称是 `database`。不要保留旧的 `mikro-orm` 依赖字符串。
+- 自定义 `RequestContext.registerMiddleware()` 的依赖名称是 `database`。
 - 引入 `HealthCheckModule` 后，模块使用现有连接注册 `DatabaseHealthIndicator`；不要为健康检查再建一条数据库连接。
 - RLS 的原生 policy、角色授权和局部 fork 用法见 `nest-boot-row-level-security`。框架示例的全新数据库 baseline 不适合作为现有业务库的升级迁移。
 
-依据：[v8 迁移指南](https://github.com/nest-boot/nest-boot/blob/main/apps/docs/content/docs/migration-v8.mdx)、[DatabaseModule](https://github.com/nest-boot/nest-boot/blob/main/packages/database/src/database.module.ts)。
+实现：[DatabaseModule](https://github.com/nest-boot/nest-boot/blob/main/packages/database/src/database.module.ts)。

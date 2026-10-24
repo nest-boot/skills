@@ -4,7 +4,7 @@
 
 `@nest-boot/queue-api` 8.1+ 依赖应用已配置的全局 DatabaseModule、GraphQLModule 与 AuthModule。核心 queue 包不需要这些模块；需要历史与 API 时额外静态导入 QueueApiModule。
 
-它导出具体的 JobEntity，直接让运行时与迁移 CLI 发现它；不继承抽象 JobEntity，不再使用旧 `queue-database` 或 QueueDatabaseModule：
+将导出的 JobEntity 加入运行时与迁移 CLI 的实体发现：
 
 ```typescript
 // mikro-orm.config.ts
@@ -22,7 +22,7 @@ export default async () => {
 };
 ```
 
-应用运行时的 DatabaseModule 也使用这份配置。CLI 不启动 Nest，不能只依赖 QueueApiModule 的 imports 来完成 entity discovery。数据库迁移是应用普通 migration；Redis queue 没有 migration 命令。
+应用运行时的 DatabaseModule 也使用这份配置。CLI 不启动 Nest，不能只依赖 QueueApiModule 的 imports 来完成 entity discovery。数据库表通过应用 migration 创建。
 
 任务类型 `Job<Q, N>` 从 `@nest-boot/queue` 导入，持久化实体 JobEntity 从 `@nest-boot/queue-api` 导入，避免把两者混为一谈。
 
@@ -54,7 +54,7 @@ export class VisibleSourceQueue extends BaseQueue {
 
 JobService 在服务层统一执行可见队列、身份和权限过滤，包括单条、分页和 count。JobEntity 没有 RLS；不要为 API 人工拼 user/workspace OR policy，也不要把直接 ORM 读取当作已经授权的公开入口。
 
-Job 分页仅公开 CREATED_AT 排序，UUID id 作为内部游标 tie-breaker；标量 bigint 流版本不对外暴露。user/workspace JSON 路径组合索引与 system 部分索引从实体配置自动命名，按真实查询计划验证，不硬编码旧索引名。
+Job 分页仅公开 CREATED_AT 排序，UUID id 作为内部游标 tie-breaker；标量 bigint 流版本不对外暴露。user/workspace JSON 路径组合索引与 system 部分索引从实体配置自动命名，按真实查询计划验证。
 
 ## 同步、清理与事件边界
 

@@ -28,7 +28,7 @@ Python validation requires [PyYAML](https://pyyaml.org/). Install it in your pre
 
 - Store each skill in `skills/<skill-name>/` with a matching `name` in `SKILL.md` frontmatter.
 - Put all trigger conditions in the frontmatter `description`; keep the body focused on non-obvious execution guidance.
-- Keep `SKILL.md` concise and link every reference directly from it.
+- Keep `SKILL.md` concise and link every reference directly from it. Usage guides describe the current API and necessary constraints; keep release history, resolved defects and Issue/PR narratives out of them.
 - Add or update `evals/evals.json` for every behavioral rule, bug fix, or trigger change. Use realistic prompts and observable expectations.
 - Do not add project names, customer data, credentials, private URLs, production logs, or speculative rules.
 - Do not edit the generated Skills table in `README.md` by hand.

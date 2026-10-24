@@ -15,7 +15,7 @@ pnpm add @nest-boot/graphql@^8 @nest-boot/graphql-connection@^8
 
 ## 2. 模块级引入与全局配置装载
 
-v8 要求 Node.js >=24.21.0、NestJS 12 与 ESM。按包的 peerDependencies 配齐 Express 5、`@as-integrations/express5` 及所用数据库依赖；不要把上面的短命令当成完整 peer 清单。开发 IDE 使用 `graphiql`，不再配置 Apollo Playground。
+v8 要求 Node.js >=24.21.0、NestJS 12 与 ESM。按包的 peerDependencies 配齐 Express 5、`@as-integrations/express5` 及所用数据库依赖；不要把上面的短命令当成完整 peer 清单。开发 IDE 使用 `graphiql`。
 
 在应用组合根或公共基础设施模块中集中初始化 GraphQL，避免在业务模块中重复装载。承载模块可以是 `AppModule`、`CommonModule` 或其他宿主应用已有的基础模块。
 
@@ -52,7 +52,7 @@ export class GraphQLInfrastructureModule {}
 
 ## 4. v8 Auth 与上传边界
 
-Auth 的 GraphQL API 已并入 `@nest-boot/auth`，不再安装 `@nest-boot/auth-graphql` 或注册 `AuthGraphQLModule`。使用内置具体实体，不派生旧 Base 类。`signUp` 返回 `{ id, token }`；管理用户的写操作返回各自的 `{ id }` payload，成功后另行查询实体。`acceptInvitation` 返回 `{ id, memberId, workspaceId }`，后续请求选定 workspace 才查询其成员关系。
+Auth 的 GraphQL API 由 `@nest-boot/auth` 提供，使用内置具体实体。`signUp` 返回 `{ id, token }`；管理用户的写操作返回各自的 `{ id }` payload，成功后另行查询实体。`acceptInvitation` 返回 `{ id, memberId, workspaceId }`，后续请求选定 workspace 才查询其成员关系。
 
 Auth 通过 `AuthModule.forRoot(options)` / `forRootAsync(...)` 注册，保留宿主的数据库、Hash 和 Mailer 配置；不要把静态 `AuthModule` 放进 imports 代替初始化。
 

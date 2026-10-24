@@ -1,15 +1,15 @@
 ---
 name: nest-boot-row-level-security
-description: 在 Nest Boot v8、@nest-boot/database 与 MikroORM 7.2 中设计、迁移、审查和验证 PostgreSQL/PGlite 原生 RLS。适用于 Entity policies、session role/variables、app.member.id、事务边界、受控 fork、后台任务租户隔离，以及从已移除的 @nest-boot/row-level-security 迁移。
+description: 在 Nest Boot v8、@nest-boot/database 与 MikroORM 7.2 中设计、迁移、审查和验证 PostgreSQL/PGlite 原生 RLS。适用于 Entity policies、session role/variables、app.member.id、事务边界、受控 fork、后台任务租户隔离。
 ---
 
 # Nest Boot v8 原生 RLS
 
-v8 使用 MikroORM 的 `@Entity({ policies })` 与 EntityManager session。旧 `@nest-boot/row-level-security`、`@Policy`、`RowLevelSecurity`、自定义 driver 和 `RowLevelSecurityMigration` 已移除；本 skill 指导原生 RLS 的集成，不代表仍存在同名 npm 包。
+使用 MikroORM 的 `@Entity({ policies })` 与 EntityManager session。
 
 ## Policy 与数据库角色
 
-- 用 Entity 的 `policies` 作为源定义，按需配置 `command`、`roles`、`using`、`check` 和 `type`；`name` 可省略，由 MikroORM 自动生成。原生属性是 `check`，不是旧 `withCheck`；command/type 是小写字面量，例如 `select`、`all`、`restrictive`。
+- 用 Entity 的 `policies` 作为源定义，按需配置 `command`、`roles`、`using`、`check` 和 `type`；`name` 可省略，由 MikroORM 自动生成。command/type 是小写字面量，例如 `select`、`all`、`restrictive`。
 - 一个或多个 policy 会默认启用 RLS；必要时显式设置 `rowLevelSecurity: true` 或 `'force'`。SQL 权限与 RLS 是两层约束，roles 和 GRANT 要由部署/初始化迁移单独配置；policy 不会创建角色或授予表权限。
 - 默认 permissive policies 以 OR 合并；restrictive policies 与允许集合以 AND 合并。显式选择命令，避免把只读规则意外扩展到 `all`。
 - 表所有者通常绕过 RLS，superuser/BYPASSRLS 也可绕过；业务验证使用真实受限角色。不要以管理员连接的成功查询证明隔离有效。
@@ -31,7 +31,7 @@ await em.transactional(async (tx) => {
 });
 ```
 
-`setSessionContext()` 合并变量；需要替换数据库范围时，在独立 fork 上传入完整 `session` 或先 `clearSessionContext()` 再设置，避免普通 session 变量残留。如果启用了 `rls` filter，fork 还会继承 filter 参数并据此重新写入 session 变量；显式 `session` 不保证移除这些变量。先检查 `getSessionContext()` 与对应 filter 参数，在新 fork 上同步设置经过授权的新参数，再开始查询或事务，不能只换 `app.tenant.id` 就认定旧范围已清除。不要在活动事务中切换、清空或绕过 session；先确定范围再开始事务。默认 `transaction` 策略会为带 session 的普通 ORM 查询创建短事务，不需要旧的全请求事务模块。
+`setSessionContext()` 合并变量；需要替换数据库范围时，在独立 fork 上传入完整 `session` 或先 `clearSessionContext()` 再设置，避免普通 session 变量残留。如果启用了 `rls` filter，fork 还会继承 filter 参数并据此重新写入 session 变量；显式 `session` 不保证移除这些变量。先检查 `getSessionContext()` 与对应 filter 参数，在新 fork 上同步设置经过授权的新参数，再开始查询或事务，不能只换 `app.tenant.id` 就认定旧范围已清除。不要在活动事务中切换、清空或绕过 session；先确定范围再开始事务。默认 `transaction` 策略会为带 session 的普通 ORM 查询创建短事务。
 
 `em.getConnection().execute()` 不携带 EntityManager session。受 RLS 保护的查询使用 ORM API 或 SQL EM 的 `em.execute()`；不要为了绕过 session 错误改成底层 connection。
 

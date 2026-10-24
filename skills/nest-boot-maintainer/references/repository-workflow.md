@@ -6,9 +6,9 @@
 
 - 默认分支 `main`；Node.js >=24.21.0、pnpm 10.30.3、原生 ESM。
 - Turborepo 编排构建任务，Changesets 管理独立包版本，GitHub Actions 执行验证与发布。
-- 使用 Vitest + SWC，注释通过 ESLint 的 JSDoc TypeScript preset 检查；不再运行 Nx、Jest 或 TypeDoc 命令。
-- `@nest-boot/<name>` 通常对应 `packages/<name>`，以 manifest 为准；旧数据库/队列包已更名为 database/queue。
-- PR 标题仍使用 Conventional Commits；版本升级幅度由 changeset 声明，不再依赖提交标题推断。
+- 使用 Vitest + SWC，注释通过 ESLint 的 JSDoc TypeScript preset 检查。
+- `@nest-boot/<name>` 通常对应 `packages/<name>`，以 manifest 为准。
+- PR 标题仍使用 Conventional Commits；版本升级幅度由 changeset 声明。
 - 当前完整 CI 包含包/示例构建、类型/格式/Lint、coverage、E2E、示例服务器和浏览器；独立 tarball 消费者按公开 API/打包风险另行验证，不假定已有统一脚本。服务依赖包括 PostgreSQL、Redis、S3 兼容存储（当前 CI 使用 RustFS）和 Mailpit。
 
 ## 准备 checkout 与分支
@@ -28,7 +28,7 @@ pnpm --filter @nest-boot/<package> test
 pnpm exec turbo run lint --filter=@nest-boot/<package>
 ```
 
-需要缩小 Vitest 范围时用该包的 `exec vitest run <file>`，不套用 Jest 的 `--runInBand`。测试或 lint 脚本缺失时先检查 manifest，不执行不存在的命令。
+需要缩小 Vitest 范围时用该包的 `exec vitest run <file>`。测试或 lint 脚本缺失时先检查 manifest，不执行不存在的命令。
 
 根据风险追加相关命令，不要求每次文案修订跑全部集成测试：
 
@@ -41,9 +41,9 @@ pnpm test:cov
 pnpm test:e2e
 ```
 
-当前根 manifest 没有 `test:consumer` 或 `test:release`，不要执行不存在的命令。公开依赖或入口变更时，在临时消费者中安装实际 pack 产物，核对公开导出、strict peers 与启动；发布流程变更时读取当前 workflow、Changesets CLI 帮助和包产物，在可丢弃 checkout 中验证。宿主以后提供专用脚本时再复用它。缺少依赖服务时明确未运行项，不把类型检查冒充运行时通过。
+公开依赖或入口变更时，在临时消费者中安装实际 pack 产物，核对公开导出、strict peers 与启动；发布流程变更时读取当前 workflow、Changesets CLI 帮助和包产物，在可丢弃 checkout 中验证。缺少依赖服务时明确未运行项，不把类型检查冒充运行时通过。
 
-文档改动按范围运行 `pnpm --filter @nest-boot/docs types:check`、`pnpm --filter @nest-boot/docs lint` 和 `pnpm build:docs`；JSDoc 对齐 `jsdoc.configs['flat/recommended-typescript-error']`，由仓库 ESLint 检查，不恢复 TypeDoc/TSDoc 工具链。
+文档改动按范围运行 `pnpm --filter @nest-boot/docs types:check`、`pnpm --filter @nest-boot/docs lint` 和 `pnpm build:docs`；JSDoc 对齐 `jsdoc.configs['flat/recommended-typescript-error']`，由仓库 ESLint 检查。
 
 ## Changesets 与发布
 

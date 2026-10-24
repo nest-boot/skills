@@ -9,9 +9,9 @@ pnpm add @nest-boot/queue@^8.2 @nest-boot/request-context@^8 \
   @nest-boot/command@^8 bullmq@^6.3.12 zod@^4
 ```
 
-核对 manifest 中其余 peers，不继续安装 `@nestjs/bullmq` 来恢复旧接口。队列核心不需要 DatabaseModule、GraphQLModule、queue migration 或 PostgreSQL。
+核对 manifest 中其余 peers。队列核心使用 Redis。
 
-根模块静态导入 `QueueModule`。默认连接来自 `REDIS_URL`；自定义 connection、prefix 和 defaultJobOptions 传给各队列的 `super(options)`，Worker 继承该队列的 connection/prefix。不存在 `QueueModule.forRoot()`、`registerQueue()`、`withQueueRedisConfig()` 或 `QUEUE_MODULE_OPTIONS` 配置注入。
+根模块静态导入 `QueueModule`。默认连接来自 `REDIS_URL`；自定义 connection、prefix 和 defaultJobOptions 传给各队列的 `super(options)`，Worker 继承该队列的 connection/prefix。
 
 ## 注册领域 providers
 
@@ -48,9 +48,8 @@ pnpm exec nb queue:start --queue job
 ```
 
 - 不传 `--queue` 时启动所有已注册 Processor，包括可选 queue-api 的 `job`。
-- 重复 `--queue` 只过滤所选名称；未知名称在启动前报错，不存在内置队列的特殊排除规则。
+- 重复 `--queue` 只过滤所选名称；未知名称在启动前报错。
 - `--queue job` 保留单独运行历史同步/清理消费者的能力。
-- 没有 `queue:run` 或 `queue:migrate`；应用数据库迁移只属于可选 Job 历史。
 
 需要同一进程提供 HTTP 并消费任务时，在 bootstrap 中显式启动：
 
