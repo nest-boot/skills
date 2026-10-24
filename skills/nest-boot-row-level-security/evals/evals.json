@@ -47,6 +47,28 @@
         "业务实体仍验证来源与权限，再在独立 fork 中建立精确 session，先于事务",
         "job.data 中带 userId/workspaceId 不自动成为可信认证身份"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "MikroORM 7.2 父 EM 的 tenant filter 设置了 id=1 且 rls:true。新 fork 只指定 session.variables['app.tenant.id']='2'，能保证旧租户变量全部消失吗？我随后会开启业务事务。",
+      "expected_output": "识别继承的 RLS filter 参数会重新写入变量，先在新 fork 上同步授权后的 filter/session 再开始事务，不修改父 EM。",
+      "files": [],
+      "expectations": [
+        "不保证显式 session 清除从 RLS filter 参数恢复的变量，检查实际 getSessionContext 与 filter 参数",
+        "在独立 fork 上设置授权后的新 filter 参数与 session，先于查询及事务",
+        "不修改父 EM，不用清空 session 自动获得 BYPASSRLS，不宣称已经完成实际 PostgreSQL 验证"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "RequestContext.child 中只绑定另一个 workspace 的 EntityManager，是否就能以该工作区或另一用户身份调用 Auth Service？未配置 DatabaseModuleOptions.session 时有默认 anonymous 角色吗？",
+      "expected_output": "区分数据库范围、应用身份与可选 session 工厂；拒绝通过替换 EM 伪造 Auth 身份。",
+      "files": [],
+      "expectations": [
+        "child 继承父身份与权限对象，只换 EM/session 不会同步 User/Workspace/Member/Ability，也不等于认证",
+        "依赖 Auth 身份的调用须通过可信认证/授权路径，不能把任务载荷或 SQL role 当身份凭证",
+        "DatabaseModule session 工厂是可选项，不配置不会自动初始化 anonymous；HTTP Auth 流程另行同步身份 scope"
+      ]
     }
   ]
 }
